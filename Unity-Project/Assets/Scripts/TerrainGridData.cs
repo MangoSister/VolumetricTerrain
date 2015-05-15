@@ -20,7 +20,7 @@ namespace PCGTerrain
             _matIdx = matIdx;
         }
     }
-    public class TerrainGrid
+    public class TerrainGrid : TerrainModifier
     {
         private int _width;
         private int _height;
@@ -41,11 +41,30 @@ namespace PCGTerrain
             _samples = new TerrainSample[_width, _height];
         }
 
-        public float QueryDensity(int width, int height, float elevation)
+        public Int3 LowerBound
+        { get { return new Int3(0, 0, 0); } }
+
+        public Int3 UpperBound
+        { get { return new Int3(_width, _height, _maxElevation); } }
+
+        public float QueryDensity(int width, int height, int elevation)
         {
-            if(width < 0 || width >= _width || height < 0 || height >= _height)
+            if(width < 0 || width >= _width || height < 0 || height >= _height) //argumented to include boundary cases
                 throw new UnityException("index exceeds bound: width: "+width+ ", height: "+height);
-            return _samples[width,height]._elevation - elevation;
+
+            if (width == Width && width == Height)
+                return _samples[width - 1, height - 1]._elevation * 3f -
+                    _samples[width - 2, height - 1]._elevation -
+                    _samples[width - 1, height - 2]._elevation - (float)elevation;
+
+            else if (width == Width)
+                return _samples[width - 1, height]._elevation * 2f - _samples[width - 2, height]._elevation - (float)elevation;
+
+            else if (height == Height)
+                return _samples[width, height - 1]._elevation * 2f - _samples[width, height - 2]._elevation - (float)elevation;
+
+            else
+                return _samples[width, height]._elevation - (float)elevation;
         }
 
         public float QueryMaterial(int width, int height, float elevation)

@@ -1,0 +1,27 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel SampleNormal
+
+#define BLOCK_SIZE 8
+#define SAMPLE_SIZE 9
+#define SAMPLE_SIZE_2D 81
+#define SAMPLE_SIZE_3D 729
+#define INC_SAMPLE_SIZE 10
+#define INC_SAMPLE_SIZE_2D 100
+#define INC_SAMPLE_SIZE_3D 1000
+
+StructuredBuffer<float> _Samples;
+
+RWStructuredBuffer<float3> _Normals;
+
+[numthreads(SAMPLE_SIZE,SAMPLE_SIZE,SAMPLE_SIZE)]
+void SampleNormal (uint3 threadId : SV_GroupThreadID, int3 groupId :SV_GroupID)
+{
+	int inIdx = groupId.x * INC_SAMPLE_SIZE_3D + threadId.x + threadId.y * INC_SAMPLE_SIZE + threadId.z * INC_SAMPLE_SIZE_2D;
+	float value = _Samples[inIdx];
+	float dx = _Samples[inIdx + 1] - value ;
+	float dy = _Samples[inIdx + INC_SAMPLE_SIZE] - value ;
+	float dz = _Samples[inIdx + INC_SAMPLE_SIZE_2D] - value ;
+
+	int outIdx = groupId.x * SAMPLE_SIZE_3D + threadId.x + threadId.y * SAMPLE_SIZE + threadId.z * SAMPLE_SIZE_2D;
+	_Normals[outIdx] = - normalize(float3(dx,dy,dz)); //need to invert the direction (?)
+}
