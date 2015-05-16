@@ -59,51 +59,53 @@
 			fixed3 triplanar_blend_weight = abs(WorldNormalVector(IN,fixed3(0,0,1))); //weird here, must use a flat float3(0,0,1)	
 			triplanar_blend_weight /= (triplanar_blend_weight.x + triplanar_blend_weight.y + triplanar_blend_weight.z);			
 			
-			fixed4 colorXY = triplanar_blend_weight.z * (
+			o.Albedo = fixed4(0,0,0,0);
+			//Color XY plane
+			o.Albedo += triplanar_blend_weight.z * (
 								tex2D(_ColorTexR, IN.worldPos.xy) * splat_blend_weight.r + 
 								tex2D(_ColorTexG, IN.worldPos.xy) * splat_blend_weight.g +
 								tex2D(_ColorTexB, IN.worldPos.xy) * splat_blend_weight.b +
 								tex2D(_ColorTexA, IN.worldPos.xy) * splat_blend_weight.a 
 								);
-
-			fixed4 colorYZ = triplanar_blend_weight.x * (
+			//Color YZ plane
+			o.Albedo += triplanar_blend_weight.x * (
 								tex2D(_ColorTexR, IN.worldPos.yz) * splat_blend_weight.r +
 								tex2D(_ColorTexG, IN.worldPos.yz) * splat_blend_weight.g +
 								tex2D(_ColorTexB, IN.worldPos.yz) * splat_blend_weight.b +
 								tex2D(_ColorTexA, IN.worldPos.yz) * splat_blend_weight.a 
 								);
-
-			fixed4 colorXZ = triplanar_blend_weight.y * (
+			//Color XZ plane
+			o.Albedo += triplanar_blend_weight.y * (
 								tex2D(_ColorTexR, IN.worldPos.xz) * splat_blend_weight.r +
 								tex2D(_ColorTexG, IN.worldPos.xz) * splat_blend_weight.g +
 								tex2D(_ColorTexB, IN.worldPos.xz) * splat_blend_weight.b +
 								tex2D(_ColorTexA, IN.worldPos.xz) * splat_blend_weight.a 
 								);
 			
-			o.Albedo = colorXY + colorYZ + colorXZ;
-
-			fixed3 normalXY = triplanar_blend_weight.z * (
-								UnpackNormal(tex2D(_NormalMapR, IN.worldPos.xy)) * splat_blend_weight.r +
-								UnpackNormal(tex2D(_NormalMapG, IN.worldPos.xy)) * splat_blend_weight.g +
-								UnpackNormal(tex2D(_NormalMapB, IN.worldPos.xy)) * splat_blend_weight.b +
-								UnpackNormal(tex2D(_NormalMapA, IN.worldPos.xy)) * splat_blend_weight.a
+			fixed nrm = fixed4(0,0,0,0);
+			//Normal XY plane
+			nrm += triplanar_blend_weight.z * (
+								tex2D(_NormalMapR, IN.worldPos.xy) * splat_blend_weight.r +
+								tex2D(_NormalMapG, IN.worldPos.xy) * splat_blend_weight.g +
+								tex2D(_NormalMapB, IN.worldPos.xy) * splat_blend_weight.b +
+								tex2D(_NormalMapA, IN.worldPos.xy) * splat_blend_weight.a
+								);
+			//Normal YZ plane
+			nrm += triplanar_blend_weight.x * (
+								tex2D(_NormalMapR, IN.worldPos.yz) * splat_blend_weight.r +
+								tex2D(_NormalMapG, IN.worldPos.yz) * splat_blend_weight.g +
+								tex2D(_NormalMapB, IN.worldPos.yz) * splat_blend_weight.b +
+								tex2D(_NormalMapA, IN.worldPos.yz) * splat_blend_weight.a
+								);
+			//Normal XZ plane
+			nrm += triplanar_blend_weight.y * (
+								tex2D(_NormalMapR, IN.worldPos.xz) * splat_blend_weight.r + 
+								tex2D(_NormalMapG, IN.worldPos.xz) * splat_blend_weight.g + 
+								tex2D(_NormalMapB, IN.worldPos.xz) * splat_blend_weight.b + 
+								tex2D(_NormalMapA, IN.worldPos.xz) * splat_blend_weight.a 
 								);
 
-			fixed3 normalYZ = triplanar_blend_weight.x * (
-								UnpackNormal(tex2D(_NormalMapR, IN.worldPos.yz)) * splat_blend_weight.r +
-								UnpackNormal(tex2D(_NormalMapG, IN.worldPos.yz)) * splat_blend_weight.g +
-								UnpackNormal(tex2D(_NormalMapB, IN.worldPos.yz)) * splat_blend_weight.b +
-								UnpackNormal(tex2D(_NormalMapA, IN.worldPos.yz)) * splat_blend_weight.a
-								);
-
-			fixed3 normalXZ = triplanar_blend_weight.y * (
-								UnpackNormal(tex2D(_NormalMapR, IN.worldPos.xz)) * splat_blend_weight.r + 
-								UnpackNormal(tex2D(_NormalMapG, IN.worldPos.xz)) * splat_blend_weight.g + 
-								UnpackNormal(tex2D(_NormalMapB, IN.worldPos.xz)) * splat_blend_weight.b + 
-								UnpackNormal(tex2D(_NormalMapA, IN.worldPos.xz)) * splat_blend_weight.a 
-								);
-
-			o.Normal = normalize(normalXY + normalYZ + normalXZ);	
+			o.Normal = normalize(UnpackNormal(nrm));	
 	
 			o.Specular = _Specular;
 			o.Smoothness = _Smoothness;
@@ -111,6 +113,6 @@
 		}
 		ENDCG
 	} 
-	//comment FallBack when developingw
+	//comment FallBack when developing
 	//FallBack "Diffuse"
 }
