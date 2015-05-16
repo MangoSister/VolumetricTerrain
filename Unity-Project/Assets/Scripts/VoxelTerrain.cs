@@ -34,8 +34,6 @@ namespace PCGTerrain
         public ComputeShader _shaderCollectTriNum;
         public ComputeShader _shaderMarchingCube;
 
-        public Material _material;
-
         private ComputeBuffer _bufferCubeEdgeFlags;
         private ComputeBuffer _bufferCornerToTriNumTable;
         private ComputeBuffer _bufferTriangleConnectionTable;
@@ -44,9 +42,11 @@ namespace PCGTerrain
 
         private Queue<TerrainModifier> _modifierQueue;
 
-        //public Vector3 _worldPos = Vector3.zero;
-        //public Vector3 _worldScale = Vector3.one;
-
+        public Vector3 WorldPos { get { return transform.position; } }
+        public Vector3 WorldSize { get { return new Vector3(_width, _height, _elevation); } }
+        
+        public Material _material;
+        public int _matControlFineness = 8;
         public void Start()
         {
             if (_shaderNormal == null)
@@ -105,6 +105,33 @@ namespace PCGTerrain
             Vector3 center = new Vector3((float)_width, (float)_height, (float)_elevation) * 0.5f;
             float radius = 4f;
             _modifierQueue.Enqueue(new SphereModifier(center, radius));
+            
+            //DEBUG: set a simple 3d splat map
+            _matControlFineness = Mathf.Clamp(_matControlFineness, 1, 8);
+            int controlMapSize = _matControlFineness * 16;
+            Texture3D controlMap = new Texture3D(controlMapSize, controlMapSize, controlMapSize, TextureFormat.ARGB32, false);
+            controlMap.filterMode = FilterMode.Bilinear;
+            controlMap.wrapMode = TextureWrapMode.Repeat;
+
+            Color[] colors = new Color[controlMapSize * controlMapSize * controlMapSize];
+            for(int x = 0; x < controlMapSize; x++)
+                for(int y = 0; y < controlMapSize; y++)
+                    for (int z = 0; z < controlMapSize; z++)
+                    {
+                        if ((float)y < (float)controlMapSize * 0.25)
+                            colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(1, 0, 0, 0);
+                        else if((float)y < (float)controlMapSize * 0.5)
+                            colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(0, 1, 0, 0);
+                        else if ((float)y < (float)controlMapSize * 0.75)
+                            colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(0, 0, 1, 0);
+                        else
+                            colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(0, 0, 0, 1);
+                    }
+            controlMap.SetPixels(colors);
+            controlMap.Apply();
+            _material.SetTexture("_MatControl", controlMap);
+            _material.SetVector("_Offset", new Vector4(WorldPos.x, WorldPos.y, WorldPos.z, 0f));
+            _material.SetVector("_Scale", new Vector4(1 / WorldSize.x, 1 / WorldSize.y, 1 / WorldSize.z, 1));
         }
 
         private void OnDestroy()
