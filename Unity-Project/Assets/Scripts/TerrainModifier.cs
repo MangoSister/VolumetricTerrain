@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using System.Collections;
+using LibNoise;
 
 namespace PCGTerrain
 {
@@ -79,6 +80,44 @@ namespace PCGTerrain
         {
             _center = center;
             _radius = radius;
+        }
+    }
+
+    public class RidgedMultifractalModifier : TerrainModifier
+    {
+        private LibNoise.RidgedMultifractal _generator;
+
+        public int _seed { get { return _generator.Seed; } set { _generator.Seed = value; } }
+        public int _octave { get { return _generator.OctaveCount; } set { _generator.OctaveCount = value; } }
+        public float _frequency { get { return (float)_generator.Frequency; } set { _generator.Frequency = value; } }
+        public float _lacunarity { get { return (float)_generator.Lacunarity; } set { _generator.Lacunarity = value; } }
+        
+        public RidgedMultifractalModifier(int seed, int octave, float freq, float lacun)
+        {
+            _generator = new RidgedMultifractal();
+            _generator.NoiseQuality = NoiseQuality.Standard;
+            _seed = seed;
+            _octave = octave;
+            _frequency = freq;
+            _lacunarity = lacun;
+        }
+        public Int3 LowerBound
+        {
+            get
+            {
+                return new Int3(0, 0, 0);
+            }
+        }
+        public Int3 UpperBound
+        {
+            get
+            { 
+                return new Int3(100, 100, 100);
+            }
+        }
+        public float QueryDensity(int x, int y, int z)
+        {
+            return (float)_generator.GetValue((double)x, (double)y, (double)z);
         }
     }
 }

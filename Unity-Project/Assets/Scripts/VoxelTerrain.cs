@@ -23,8 +23,7 @@ namespace PCGTerrain
         //x: terrain.width, y: terrain.height, z: elevation 
         public int _width = 16, _height = 16, _elevation = 16; // voxel size
         private float[, ,] _voxelSamples;
-        public TerrainGrid _terrainInfo; //sample (2d)
-        public const int maxSampleResolution = 257; //sample size = voxel size + 1
+        public const int maxSampleResolution = 257; //sample size = voxel size + 1   
 
         private int _blockSize = 8; // voxel size = sample size - 1
         private GameObject[, ,] _blocks;
@@ -101,10 +100,8 @@ namespace PCGTerrain
 
             _modifierQueue = new Queue<TerrainModifier>();
             
-            //DEBUG: simple sphere density function
-            Vector3 center = new Vector3((float)_width, (float)_height, (float)_elevation) * 0.5f;
-            float radius = 4f;
-            _modifierQueue.Enqueue(new SphereModifier(center, radius));
+            //DEBUG: add a modifier here
+            TestModifier();
             
             //DEBUG: set a simple 3d splat map
             _matControlFineness = Mathf.Clamp(_matControlFineness, 1, 8);
@@ -114,18 +111,28 @@ namespace PCGTerrain
             controlMap.wrapMode = TextureWrapMode.Repeat;
 
             Color[] colors = new Color[controlMapSize * controlMapSize * controlMapSize];
+            LibNoise.Billow control = new LibNoise.Billow();
+            control.Frequency = 0.02;
+            control.OctaveCount = 1;
             for(int x = 0; x < controlMapSize; x++)
                 for(int y = 0; y < controlMapSize; y++)
                     for (int z = 0; z < controlMapSize; z++)
                     {
                         if ((float)y < (float)controlMapSize * 0.25)
                             colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(1, 0, 0, 0);
-                        else if((float)y < (float)controlMapSize * 0.5)
+                        else if ((float)y < (float)controlMapSize * 0.5)
                             colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(0, 1, 0, 0);
                         else if ((float)y < (float)controlMapSize * 0.75)
                             colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(0, 0, 1, 0);
                         else
                             colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(0, 0, 0, 1);
+                        //var r = (float)control.GetValue(x,y,z);
+                        //var g = (float)control.GetValue(x + 7.7,y - 4.9,z + 93.3);
+                        //var b = (float)control.GetValue(x - 14.3,y + 28.7,z - 14.7);
+                        //var a = (float)control.GetValue(x + 71.9, y + 23.7, z - 1.1);
+                        //var inv_sum = 1f/ ( r + g + b + a);
+                        //r *= inv_sum; g *= inv_sum; b *= inv_sum; a *= inv_sum;
+                        //colors[x + y * controlMapSize + z * controlMapSize * controlMapSize] = new Color(r, g, b, a);
                     }
             controlMap.SetPixels(colors);
             controlMap.Apply();
@@ -155,6 +162,26 @@ namespace PCGTerrain
             }
         }
 
+        private void TestModifier()
+        {
+            //a sphere density function
+            //Vector3 center = new Vector3((float)_width, (float)_height, (float)_elevation) * 0.5f;
+            //float radius = 4f;
+            //_modifierQueue.Enqueue(new SphereModifier(center, radius));
+           
+            //a heightmap grid
+            //TerrainGrid terrainInfo = new TerrainGrid(17, 9, 17); //sample (2d)
+            //for (int x = 0; x <= 16; x++)
+            //    for (int z = 0; z <= 16; z++)
+            //    {
+            //        terrainInfo._samples[x, z]._elevation = 8 - 0.5f * (new Vector2(x - 8, z - 8)).magnitude * Random.Range(0.8f, 1.2f);
+            //    }
+            //_modifierQueue.Enqueue(terrainInfo);
+
+            //a noise function
+            RidgedMultifractalModifier noise = new RidgedMultifractalModifier(0, 4, 0.06f, 2.0f);
+            _modifierQueue.Enqueue(noise);
+        }
         public void Update()
         {
             HashSet<Int3> updateBlocks = new HashSet<Int3>();
