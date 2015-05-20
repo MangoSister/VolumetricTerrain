@@ -1,9 +1,6 @@
-﻿//using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using BenTools.Mathematics;
-//using BenTools.Data;
-using Microsoft.DirectX;
 
 public class IslandTileCorner
 {
