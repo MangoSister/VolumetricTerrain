@@ -9,7 +9,12 @@ public class Island
     int relaxation;//relaxation times
     int width;//screen width 
     int hight;//screen hight
+    int num_of_rivers;
     int num_of_centers;//number of centers
+    int num1;//corner num of main river
+    int num2;// corner num of sub river
+    int countm = 0;// for remenbering the num of corner of a main river branch
+    int counts = 0;//for remenbering the num of corner of a sub river branch
     public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
     public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
     public HashSet<IslandTileCorner> shore = new HashSet<IslandTileCorner>();//store corners in shore
@@ -17,13 +22,18 @@ public class Island
     public Dictionary<Vector, IslandTile> Tiles = new Dictionary<Vector, IslandTile>();//store all tiles
     public List<Vector> centers = new List<Vector>();//stores all tiles' positions
     public List<Vector> landcenters = new List<Vector>();//stores land tiles' postions
+    public List<River> allrivers = new List<River>();//all rivers
+    Random sub_rnd = new Random();//decide whether there is a subriver
     //class constractor
-    public Island(int w,int h,int r,int num)
+    public Island(int w,int h,int r,int numc,int numr)
     {
         width = w;
         hight = h;
         relaxation = r;
-        num_of_centers = num;
+        num_of_centers = numc;
+        num_of_rivers = numr;
+        num1 = Math.Max(w / 50, h / 50);
+        num2 = num1 / 2;
         centers = random_centers(width, hight, num_of_centers);
         VoronoiGraph vg = Fortune.ComputeVoronoiGraph(centers);//run voronoi diagram algorithm
         for (int i = 0; i < centers.Count; i++)//Initialize and store IslandTiles
@@ -197,7 +207,7 @@ public class Island
     }
     //----------------------------3.generate rivers-----------------------------
     //this function will return a list of rivers,and the num of river is decided by you in your main function
-    public List<River> generationofRivers(int num)
+   /* public List<River> generationofRivers(int num)
     {
         List<River> totalriver = new List<River>();
         Random rnd = new Random();
@@ -225,7 +235,89 @@ public class Island
         return totalriver;
             
             
+    }*/
+
+    public List<River> generationofRivers()
+    {
+        //
+        
+        //generate startpoints in shore corners
+        List<IslandTileCorner> lshore=new List<IslandTileCorner>();
+        
+        foreach(var s in shore)
+            lshore.Add(s);
+        HashSet<IslandTileCorner> startpoints = new HashSet<IslandTileCorner>();
+        Random r = new Random();
+        while(startpoints.Count<num_of_rivers)
+        {
+            int index = r.Next(0, lshore.Count - 1);
+            startpoints.Add(lshore[index]);
+        }
+        foreach(var rs in startpoints)
+        {
+            
+            River root=new River(rs);
+            //generation_Mainriver(highest);
+            generation_Mainriver(root);
+            allrivers.Add(root);
+            countm = 0;
+
+        }
+        return allrivers;
+
     }
 
+    public void generation_Mainriver(River rc)
+    {
+        IslandTileCorner highest = rc.data;
+        IslandTileCorner secondhigh = rc.data;
+        foreach(var c in rc.data.adjacent)
+        {
+          if (c.elevation > highest.elevation)
+             highest = c;
+        }
+        foreach(var c in rc.data.adjacent)
+        {
+          if ((c.elevation > secondhigh.elevation) && (c != highest))
+             secondhigh = c;
+        }
+
+        if (rc.right == null)
+            rc.right = new River(highest);
+        countm++;
+        if(countm<=num1)
+            generation_Mainriver(rc.right);
+        if (countm <= num1 - 3)//make the sub river dont appear too early
+        {
+            double whetherleft = sub_rnd.NextDouble();
+            if (whetherleft < 0.2)
+            {
+                if (rc.left == null)
+                {
+                    rc.left = new River(secondhigh);
+
+                }
+                generation_Subriver(rc.left);
+            }
+        }
+        
+    }
+    public void generation_Subriver(River sr)
+    {
+        //to make it easy I don't concider the subriver of a subriver
+        IslandTileCorner highest = sr.data;
+        foreach (var c in sr.data.adjacent)
+        {
+            if (c.elevation > highest.elevation)
+                highest = c;
+        }
+        if (sr.right == null)
+            sr.right = new River(highest);
+        counts++;
+        if(counts<=num2)
+            generation_Subriver(sr.right);
+        if (counts == num2)
+            counts = 0;
+    }
 
 }

@@ -11,7 +11,6 @@ public class IslandTile
     public HashSet<IslandTileEdge> edges=new HashSet<IslandTileEdge>();//edges belong to this tile
     public HashSet<IslandTileCorner> corners = new HashSet<IslandTileCorner>();//all corners in this tile
     public HashSet<Vector> neighbors = new HashSet<Vector>();//store neighber tiles' center positon
-    
     public bool iswater = false;
     public bool isshore = false;
     public float elevation=float.MaxValue;

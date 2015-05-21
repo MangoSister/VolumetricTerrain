@@ -10,20 +10,17 @@ namespace Island_test
 
         static void Main(string[] args)
         {
-            Island island = new Island(500, 500, 2, 700);
-            int numofRiver = 10;
+            Island island = new Island(500, 500, 2, 700,5);
+            //int numofRiver = 10;
             List<River> rivers;
-            rivers = island.generationofRivers(numofRiver);
-            for (int i = 0; i < 5; i++)
-            { 
-                System.Console.WriteLine(rivers[i].river.Count); 
-            }
+            rivers = island.generationofRivers();
+          
            /* Vector testpoint = new Vector(30, 20);
             int tag = NearistNeighbor.FindNearistTile(island.centers, testpoint);
             Vector neighbercenter = island.centers[tag];
             System.Console.WriteLine(tag + " " + neighbercenter.data[0] + " " + neighbercenter.data[1]);
             */
-            using (System.IO.StreamWriter file1 = new System.IO.StreamWriter("E:\\MyFile1.txt"))
+           /* using (System.IO.StreamWriter file1 = new System.IO.StreamWriter("E:\\MyFile1.txt"))
             using (System.IO.StreamWriter file2 = new System.IO.StreamWriter("E:\\MyFile2.txt"))
             using (System.IO.StreamWriter file3 = new System.IO.StreamWriter("E:\\MyFile3.txt"))
             using (System.IO.StreamWriter file4 = new System.IO.StreamWriter("E:\\MyFile4.txt"))
@@ -108,6 +105,7 @@ namespace Island_test
                     file8.Write(item.position.data[1] + " ");
                 }
             }
+            */
 
         }
 

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 public class River
 {
-    public List<IslandTileCorner> river = new List<IslandTileCorner>();//store a river corners
+    //this is a binary tree storing the corners in the river
+    /*public List<IslandTileCorner> river = new List<IslandTileCorner>();//store a river corners
     public IslandTileCorner rp;//start corner of a river
     public int cornercount = 1;
     public void generateriver(IslandTileCorner p)
@@ -27,7 +28,17 @@ public class River
         
 
 
+    }*/
+    public IslandTileCorner data;
+    public River left;
+    public River right;
+    public River(IslandTileCorner c)
+    {
+        this.data = c;
+        this.left = null;
+        this.right = null;
     }
+
 
 }
 
