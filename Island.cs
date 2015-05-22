@@ -6,15 +6,15 @@ using BenTools.Mathematics;
 public class Island
 {
     //-------------Data---------------------------
-    int relaxation;//relaxation times
-    int width;//screen width 
-    int hight;//screen hight
-    int num_of_rivers;
-    int num_of_centers;//number of centers
-    int num1;//corner num of main river
-    int num2;// corner num of sub river
-    int countm = 0;// for remenbering the num of corner of a main river branch
-    int counts = 0;//for remenbering the num of corner of a sub river branch
+    public int relaxation;//relaxation times
+    public int width;//screen width 
+    public int hight;//screen hight
+    public int num_of_rivers;
+    public int num_of_centers;//number of centers
+    public int num1;//corner num of main river
+    public int num2;// corner num of sub river
+    public int countm = 0;// for remenbering the num of corner of a main river branch
+    public int counts = 0;//for remenbering the num of corner of a sub river branch
     public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
     public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
     public HashSet<IslandTileCorner> shore = new HashSet<IslandTileCorner>();//store corners in shore
@@ -131,6 +131,7 @@ public class Island
         {
             if (!t.iswater)
             {
+                float sum_elevation = 0;
                 foreach (var c in t.corners)
                 {
                     foreach (var s in shore)
@@ -140,8 +141,10 @@ public class Island
                         if (c.elevation > elevation)
                             c.elevation = elevation;
                     }
+                    sum_elevation += c.elevation;
                    // totalcorners[c.position] = c;
                 }
+                t.elevation = sum_elevation / t.corners.Count;
 
             }
         }
@@ -159,7 +162,6 @@ public class Island
         }
             
         //from now on, all data of a tile are generated. 
-        //next step is to the tile of an arbitrary pixel
 
     }
     
@@ -319,5 +321,10 @@ public class Island
         if (counts == num2)
             counts = 0;
     }
+
+    
+
+    
+    
 
 }

@@ -10,11 +10,47 @@ namespace Island_test
 
         static void Main(string[] args)
         {
+            //there is a example to show you how to generate island,rivers and pixel's elevation
+            //width=500,hight=500,relaxtion=2,centers=700,rivers=5
             Island island = new Island(500, 500, 2, 700,5);
-            //int numofRiver = 10;
+            //each river is a binary tree through this you can travesing all river corners by tree's order
             List<River> rivers;
             rivers = island.generationofRivers();
-          
+            //get elevation for every pixel 
+            for(int i=0;i<island.hight;i++)
+            {
+                for(int j=0;j<island.width;j++)
+                {
+                    Vector testpoint = new Vector(i,j);
+                    float pelevation;//elevation of this pixel
+                    //find nearist center
+                    int tag = NearistNeighbor.FindNearistTile(island.centers, testpoint);
+                    Vector neighbercenter = island.centers[tag];
+                    //water's elevation is zero
+                    if(island.Tiles[neighbercenter].iswater)
+                    {
+                        pelevation=0;
+                    }
+                    else
+                    {
+                        //pixel _location() finds two bottom corners of the triangle where this pixel in
+                        List<IslandTileCorner> bottom = island.Tiles[neighbercenter].pixel_loation(testpoint);
+                        //PixelElevation() gets the final elevation
+                        pelevation = island.Tiles[neighbercenter].PixelElevation(testpoint, bottom);
+                    }
+                    System.Console.Write(pelevation+" ");
+                }
+                System.Console.WriteLine();
+            }
+            
+           // System.Console.WriteLine();
+            //System.Console.WriteLine(Math.Atan2(testpoint.data[1] - island.centers[tag].data[1], testpoint.data[0] - island.centers[tag].data[0]));
+            //System.Console.WriteLine(Math.Atan2(bottom[0].position.data[1] - island.centers[tag].data[1], bottom[0].position.data[0] - island.centers[tag].data[0]));
+            //System.Console.WriteLine(Math.Atan2(bottom[1].position.data[1] - island.centers[tag].data[1], bottom[1].position.data[0] - island.centers[tag].data[0]));
+            //System.Console.WriteLine(pelevation);
+            //System.Console.WriteLine(island.Tiles[neighbercenter].center.data[0]+" "+island.Tiles[neighbercenter].center.data[1]+" "+island.Tiles[neighbercenter].elevation);
+            //System.Console.WriteLine(bottom[0].position.data[0]+" "+bottom[0].position.data[1]+" "+bottom[0].elevation);
+            //System.Console.WriteLine(bottom[1].position.data[0]+" "+ bottom[1].position.data[1]+" "+ bottom[1].elevation);
            /* Vector testpoint = new Vector(30, 20);
             int tag = NearistNeighbor.FindNearistTile(island.centers, testpoint);
             Vector neighbercenter = island.centers[tag];

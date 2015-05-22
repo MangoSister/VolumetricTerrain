@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Note: the method of generating KD-tree is based on the free version library of ALGlib
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using BenTools.Mathematics;
