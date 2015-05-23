@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using System.Collections;
+using PCGTerrain.Generation;
 
 namespace PCGTerrain.Render
 {
