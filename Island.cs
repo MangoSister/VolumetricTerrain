@@ -15,10 +15,11 @@ public class Island
     public int num2;// corner num of sub river
     public int countm = 0;// for remenbering the num of corner of a main river branch
     public int counts = 0;//for remenbering the num of corner of a sub river branch
+    public float maxelevation = float.MaxValue;
     public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
     public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
     public HashSet<IslandTileCorner> shore = new HashSet<IslandTileCorner>();//store corners in shore
-    public HashSet<IslandTileCorner> totalcorners = new HashSet<IslandTileCorner>();//total corners
+    //public HashSet<IslandTileCorner> totalcorners = new HashSet<IslandTileCorner>();//total corners
     public Dictionary<Vector, IslandTile> Tiles = new Dictionary<Vector, IslandTile>();//store all tiles
     public List<Vector> centers = new List<Vector>();//stores all tiles' positions
     public List<Vector> landcenters = new List<Vector>();//stores land tiles' postions
@@ -149,11 +150,11 @@ public class Island
             }
         }
         //store total corners
-        foreach(var item in Tiles.Values)
+        /*foreach(var item in Tiles.Values)
         {
             foreach (var c in item.corners)
                 totalcorners.Add(c);
-        }
+        }*/
         //landcenters
         foreach(var item in land)
         {
@@ -284,16 +285,21 @@ public class Island
         }
 
         if (rc.right == null)
+        { 
             rc.right = new River(highest);
+            rc.right.father = rc;
+        }
         countm++;
         if(countm<num1)
             generation_Mainriver(rc.right);
         double whetherleft = sub_rnd.NextDouble();
+
         if (whetherleft < 0.2)
         {
             if (rc.left == null)
             {
                 rc.left = new River(secondhigh);
+                rc.left.father = rc;
             }
             generation_Subriver(rc.left);
             counts = 0;
@@ -309,12 +315,48 @@ public class Island
                 highest = c;
         }
         if (sr.right == null)
+        {
             sr.right = new River(highest);
+            sr.right.father = sr;
+        }
         counts++;
         if(counts<num2)
             generation_Subriver(sr.right);
     }
+    // get biome type of each tiles. this varible is defined in IslandTile.cs
+    //to use this function, you'd better first calculate the maxelevation of pixels
+    public void storebiome()
+    {
+        foreach(var item in Tiles.Values)
+        {
+            if(item.iswater)
+            {
+                item.biome = 0;//ocean
+            }
+            if(item.isshore)
+            {
+                item.biome = 1;//beach
+            }
+            if(item.elevation>=(0.9*maxelevation))
+            {
+                //tiles above 0.9maxelevation supposed to be snow
+                item.biome = 5;
+            }
+            if((item.elevation<0.9*maxelevation)&&(item.elevation>=0.6*maxelevation))
+            {
+                item.biome = 4;//rock
+            }
+            if(item.elevation<0.6)
+            {
+                item.biome = 3;//grassland
+            }
+            if(item.hasriver)
+            {
+                item.biome = 2;//foreast
+            }
 
+        }
+    }
     
 
     

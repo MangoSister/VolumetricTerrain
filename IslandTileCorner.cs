@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using BenTools.Mathematics;
 using Microsoft.DirectX;
-
 public class IslandTileCorner
 {
     public HashSet<IslandTileCorner> adjacent;   // Corners connected by edges
@@ -10,11 +9,12 @@ public class IslandTileCorner
     public HashSet<IslandTile> touches;    // Tiles connected by this corner
     public Vector position;
     public float elevation = float.MaxValue;
+    public int discharge = 0;//for river's discharge
     //this dictionary is for searching corner through postion
     //and I also don't wanna build a hashset when this corner is already exist. 
     public static Dictionary<Vector, IslandTileCorner> 
         Index = new Dictionary<Vector, IslandTileCorner>();
-    // Constructor
+    //Constructor
     public IslandTileCorner(Vector p)
     {
         adjacent=new HashSet<IslandTileCorner>();

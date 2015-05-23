@@ -13,6 +13,8 @@ public class IslandTile
     public Dictionary<double, IslandTileCorner> angle_corner = new Dictionary<double, IslandTileCorner>();
     public bool iswater = false;
     public bool isshore = false;
+    public bool hasriver = false;
+    public int biome=3;//biome type: 1 beach 2 grassland 3 rain forest 4 bare moutain(rock and etc) 5 snow
     public float elevation=float.MaxValue;
     public int width;//these two factor are for boundary infinity
     public int hight;
