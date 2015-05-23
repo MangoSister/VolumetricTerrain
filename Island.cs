@@ -15,7 +15,7 @@ public class Island
     public int num2;// corner num of sub river
     public int countm = 0;// for remenbering the num of corner of a main river branch
     public int counts = 0;//for remenbering the num of corner of a sub river branch
-    public float maxelevation = float.MaxValue;
+    public float maxelevation = 0;
     public NearestNeighbor NN;//class for searching nearest center
     public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
     public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
@@ -25,6 +25,7 @@ public class Island
     public List<Vector> centers = new List<Vector>();//stores all tiles' positions
     public List<Vector> landcenters = new List<Vector>();//stores land tiles' postions
     public List<River> allrivers = new List<River>();//all rivers
+    public List<River> rivers;//each river is a binary tree through this you can travesing all river corners by tree's order
     Random sub_rnd = new Random();//decide whether there is a subriver
     //class constractor
     public Island(int w,int h,int r,int numc,int numr)
@@ -164,7 +165,30 @@ public class Island
             landcenters.Add(item.center);
 
         }
-        storebiome();//
+        rivers = generationofRivers();//generate rivers
+        foreach (var ri in rivers)
+        {
+            River.findDischarge(ri);//get discharge for every corner
+        }
+        //put discharge information in it's tile
+        foreach (var kc in River.keeprivercorners)
+        {
+            foreach (var t in kc.touches)
+            {
+                t.hasriver = true;
+                foreach (var c in t.corners)
+                {
+                    if (c.position == kc.position)
+                    {
+                        c.discharge = kc.discharge;
+
+                    }
+                    break;
+                }
+            }
+        }
+
+        storebiome();//set biome type for each tile
        
         //from now on, all data of a tile are generated. 
 

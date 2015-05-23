@@ -12,37 +12,11 @@ namespace Island_test
         {
             //there is a example to show you how to generate island,rivers and pixel's elevation
             //width=500,hight=500,relaxtion=2,centers=700,rivers=5
+            //after generating the island, you can find it's rivers in the island data domain
             Island island = new Island(500, 500, 2, 700, 5);
-            //each river is a binary tree through this you can travesing all river corners by tree's order
-            List<River> rivers;
-            rivers = island.generationofRivers();
-            foreach (var r in rivers)
-            {
-                River.findDischarge(r);//get discharge for every corner
-                System.Console.WriteLine();
-                System.Console.WriteLine();
-            }
-            //put discharge information in it's tile
-            foreach (var r in River.keeprivercorners)
-            {
-                foreach (var t in r.touches)
-                {
-                    t.hasriver = true;
-                    foreach (var c in t.corners)
-                    {
-                        if (c.position == r.position)
-                        {
-                            c.discharge = r.discharge;
-
-                        }
-                        break;
-                    }
-                }
-            }
-            //Vector testpoint = new Vector(499,499);
-            
-                //get elevation for every pixel 
-
+            //this example calculate elevation and output one by one
+            //you can also move this for loop into Island.cs and make it to be a function, and store
+            //the elevation data in a arry or dictionary. Anyway, do as you like
             for (int i = 0; i < island.hight; i++)
             {
                 for (int j = 0; j < island.width; j++)
@@ -50,6 +24,8 @@ namespace Island_test
                     float h;
                     Vector testpoint = new Vector(i, j);
                     h = island.getfinalelevation(testpoint);
+                    if (h > island.maxelevation)
+                        island.maxelevation = h;//this step of calculating maxelevation is for diciding biome type
                 }
 
             }
