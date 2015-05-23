@@ -16,6 +16,7 @@ public class Island
     public int countm = 0;// for remenbering the num of corner of a main river branch
     public int counts = 0;//for remenbering the num of corner of a sub river branch
     public float maxelevation = float.MaxValue;
+    public NearestNeighbor NN;//class for searching nearest center
     public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
     public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
     public HashSet<IslandTileCorner> shore = new HashSet<IslandTileCorner>();//store corners in shore
@@ -42,6 +43,7 @@ public class Island
             Tiles[centers[i]] = new IslandTile(centers[i], vg,width,hight);
         }
         //call improveRandomPoints function "relaxation" times
+
         for (int re = 0; re < relaxation; re++)
         {
             centers = improveRandomPoints(Tiles, centers);
@@ -52,10 +54,11 @@ public class Island
                 Tiles[centers[j]] = new IslandTile(centers[j], vGraph,width,hight);
             }
         }
-            foreach (var item in Tiles.Values)
-            {
-                if (item.center.data[0] < (width / 10) || item.center.data[0] > (width - width / 10) ||
-                    item.center.data[1] < (width / 10) || item.center.data[1] > (width - width / 10))
+        NN = new NearestNeighbor(centers);//builded kdtree
+         foreach (var item in Tiles.Values)
+         {
+            if (item.center.data[0] < (width / 10) || item.center.data[0] > (width - width / 10) ||
+                 item.center.data[1] < (width / 10) || item.center.data[1] > (width - width / 10))
                 {
                     item.iswater = true;
                     item.elevation = 0;
@@ -161,7 +164,8 @@ public class Island
             landcenters.Add(item.center);
 
         }
-            
+        storebiome();//
+       
         //from now on, all data of a tile are generated. 
 
     }
@@ -189,6 +193,7 @@ public class Island
         return poi;
 
     }
+
 
     //-----------2.improveRandomPoints(use the centroid of corners to replace inital centers)---
     public List<Vector> improveRandomPoints(Dictionary<Vector, IslandTile> Tiles, List<Vector> c)
@@ -352,12 +357,31 @@ public class Island
             }
             if(item.hasriver)
             {
-                item.biome = 2;//foreast
+                item.biome = 2;//forest
             }
 
         }
     }
-    
+    public float getfinalelevation(Vector p)
+    {
+        float pelevation;//elevation of this pixel
+        //find nearist center
+        int tag = NN.FindNearestTile(p);
+        Vector neighbercenter = centers[tag];
+        //water's elevation is zero
+        if (Tiles[neighbercenter].iswater)
+        {
+            pelevation = 0;
+        }
+        else
+        {
+            //pixel _location() finds two bottom corners of the triangle where this pixel in
+            List<IslandTileCorner> bottom = Tiles[neighbercenter].pixel_loation(p);
+            //PixelElevation() gets the final elevation
+            pelevation = Tiles[neighbercenter].PixelElevation(p, bottom);
+        }
+        return pelevation;
+    }
 
     
     

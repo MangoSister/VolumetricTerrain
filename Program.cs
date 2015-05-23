@@ -38,34 +38,23 @@ namespace Island_test
                         break;
                     }
                 }
+            }
+            //Vector testpoint = new Vector(499,499);
+            
                 //get elevation for every pixel 
-                /*for(int i=0;i<island.hight;i++)
+
+            for (int i = 0; i < island.hight; i++)
+            {
+                for (int j = 0; j < island.width; j++)
                 {
-                    for(int j=0;j<island.width;j++)
-                    {
-                        Vector testpoint = new Vector(i,j);
-                        float pelevation;//elevation of this pixel
-                        //find nearist center
-                        int tag = NearistNeighbor.FindNearistTile(island.centers, testpoint);
-                        Vector neighbercenter = island.centers[tag];
-                        //water's elevation is zero
-                        if(island.Tiles[neighbercenter].iswater)
-                        {
-                            pelevation=0;
-                        }
-                        else
-                        {
-                            //pixel _location() finds two bottom corners of the triangle where this pixel in
-                            List<IslandTileCorner> bottom = island.Tiles[neighbercenter].pixel_loation(testpoint);
-                            //PixelElevation() gets the final elevation
-                            pelevation = island.Tiles[neighbercenter].PixelElevation(testpoint, bottom);
-                        }
-                        System.Console.Write(pelevation+" ");
-                    }
-                    System.Console.WriteLine();
-                }*/
-                //use this first get maxelevation of pixel which you can get in last step
-                island.storebiome();
+                    float h;
+                    Vector testpoint = new Vector(i, j);
+                    h = island.getfinalelevation(testpoint);
+                }
+
+            }
+           
+               
 
 
 
@@ -170,7 +159,7 @@ namespace Island_test
                  }
                  */
 
-            }
+            
 
 
         }

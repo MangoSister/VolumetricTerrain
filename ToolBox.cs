@@ -1,8 +1,5 @@
 using System;
 using System.Collections;
-using System.IO;
-using System.Text;
-using System.Drawing;
 
 namespace BenTools.Mathematics
 {
@@ -161,22 +158,6 @@ namespace BenTools.Mathematics
             return (string[])CopyToArray(Erg, typeof(string));
         }
 
-        public static RectangleF MaxRectangleFit(RectangleF Target, SizeF Source)
-        {
-            float W, H;
-            // 1. Auf höhe probieren
-            H = Target.Height;
-            W = Target.Height / Source.Height * Source.Width;
-            if (W <= Target.Width)
-            {
-                return new RectangleF(Target.X + Target.Width / 2 - W / 2, Target.Y, W, H);
-            }
-            // 2. Auf weite probieren
-            W = Target.Width;
-            H = Target.Width / Source.Width * Source.Height;
-            return new RectangleF(Target.X, Target.Y + Target.Height / 2 - H / 2, W, H);
-
-        }
         public static double DASkalar(double[] A, double[] B)
         {
             if (A.Length != B.Length)
@@ -314,11 +295,7 @@ namespace BenTools.Mathematics
             }
             return C;
         }
-        public static Color HSBtoRGB(int hue, int saturation, int brightness)
-        {
-            double[] C = HSBtoRGB(hue, saturation, brightness, null);
-            return Color.FromArgb((int)C[0], (int)C[1], (int)C[2]);
-        }
+
         public static double GetAngle(double x, double y)
         {
             if (x == 0)
@@ -347,18 +324,7 @@ namespace BenTools.Mathematics
             if (dx < 0) t = 2 - t; else if (dy < 0) t = 4 + t;
             return t * 90.0;
         }
-        public static int ccw(Point P0, Point P1, Point P2, bool PlusOneOnZeroDegrees)
-        {
-            int dx1, dx2, dy1, dy2;
-            dx1 = P1.X - P0.X; dy1 = P1.Y - P0.Y;
-            dx2 = P2.X - P0.X; dy2 = P2.Y - P0.Y;
-            if (dx1 * dy2 > dy1 * dx2) return +1;
-            if (dx1 * dy2 < dy1 * dx2) return -1;
-            if ((dx1 * dx2 < 0) || (dy1 * dy2 < 0)) return -1;
-            if ((dx1 * dx1 + dy1 * dy1) < (dx2 * dx2 + dy2 * dy2) && PlusOneOnZeroDegrees)
-                return +1;
-            return 0;
-        }
+
         public static int ccw(double P0x, double P0y, double P1x, double P1y, double P2x, double P2y, bool PlusOneOnZeroDegrees)
         {
             double dx1, dx2, dy1, dy2;
@@ -370,56 +336,6 @@ namespace BenTools.Mathematics
             if ((dx1 * dx1 + dy1 * dy1) < (dx2 * dx2 + dy2 * dy2) && PlusOneOnZeroDegrees)
                 return +1;
             return 0;
-        }
-
-        public static bool intersect(Point P11, Point P12, Point P21, Point P22)
-        {
-            return ccw(P11, P12, P21, true) * ccw(P11, P12, P22, true) <= 0
-                && ccw(P21, P22, P11, true) * ccw(P21, P22, P12, true) <= 0;
-        }
-
-        public static PointF IntersectionPoint(Point P11, Point P12, Point P21, Point P22)
-        {
-            double Kx = P11.X, Ky = P11.Y, Mx = P21.X, My = P21.Y;
-            double Lx = (P12.X - P11.X), Ly = (P12.Y - P11.Y), Nx = (P22.X - P21.X), Ny = (P22.Y - P21.Y);
-            double a = double.NaN, b = double.NaN;
-            if (Lx == 0)
-            {
-                if (Nx == 0)
-                    throw new Exception("No intersect!");
-                b = (Kx - Mx) / Nx;
-            }
-            else if (Ly == 0)
-            {
-                if (Ny == 0)
-                    throw new Exception("No intersect!");
-                b = (Ky - My) / Ny;
-            }
-            else if (Nx == 0)
-            {
-                if (Lx == 0)
-                    throw new Exception("No intersect!");
-                a = (Mx - Kx) / Lx;
-            }
-            else if (Ny == 0)
-            {
-                if (Ly == 0)
-                    throw new Exception("No intersect!");
-                a = (My - Ky) / Ly;
-            }
-            else
-            {
-                b = (Ky + Mx * Ly / Lx - Kx * Ly / Lx - My) / (Ny - Nx * Ly / Lx);
-            }
-            if (!double.IsNaN(a))
-            {
-                return new PointF((float)(Kx + a * Lx), (float)(Ky + a * Ly));
-            }
-            if (!double.IsNaN(b))
-            {
-                return new PointF((float)(Mx + b * Nx), (float)(My + b * Ny));
-            }
-            throw new Exception("Error in IntersectionPoint");
         }
     }
 }

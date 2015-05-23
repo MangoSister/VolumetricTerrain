@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using BenTools.Mathematics;
-using Microsoft.DirectX;
 public class IslandTileCorner
 {
     public HashSet<IslandTileCorner> adjacent;   // Corners connected by edges

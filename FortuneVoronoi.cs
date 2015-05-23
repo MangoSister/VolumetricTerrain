@@ -7,12 +7,11 @@
 using System;
 using System.Collections;
 using BenTools.Data;
-//using System.Windows;
 namespace BenTools.Mathematics
 {
 	public class VoronoiGraph
 	{
-		public HashSet<Vector> Vertizes = new HashSet<Vector>();
+		public HashSet<Vector> Vertices = new HashSet<Vector>();
 		public HashSet<VoronoiEdge> Edges = new HashSet<VoronoiEdge>();
 	}
 	public class VoronoiEdge
@@ -286,7 +285,7 @@ namespace BenTools.Mathematics
 			Vector VNew = new Vector(e.Center[0],e.Center[1]);
 //			VNew[0] = Fortune.ParabolicCut(a.DataPoint[0],a.DataPoint[1],c.DataPoint[0],c.DataPoint[1],ys);
 //			VNew[1] = (ys + a.DataPoint[1])/2 - 1/(2*(ys-a.DataPoint[1]))*(VNew[0]-a.DataPoint[0])*(VNew[0]-a.DataPoint[0]);
-			VG.Vertizes.Add(VNew);
+			VG.Vertices.Add(VNew);
 			//2. Find out if a or c are in a distand part of the tree (the other is then b's sibling) and assign the new vertex
 			if(eu.Left==b) // c is sibling
 			{
@@ -654,8 +653,8 @@ namespace BenTools.Mathematics
 			}
 			foreach(VoronoiEdge VE in VGErg.Edges)
 			{
-				VGErg.Vertizes.Add(VE.VVertexA);
-				VGErg.Vertizes.Add(VE.VVertexB);
+				VGErg.Vertices.Add(VE.VVertexA);
+				VGErg.Vertices.Add(VE.VVertexB);
 			}
 			return VGErg;
 		}
