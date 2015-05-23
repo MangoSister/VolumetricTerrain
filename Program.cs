@@ -16,8 +16,14 @@ namespace Island_test
             //each river is a binary tree through this you can travesing all river corners by tree's order
             List<River> rivers;
             rivers = island.generationofRivers();
+            foreach(var r in rivers)
+            {
+                River.findDischarge(r);//get discharge for every corner
+                System.Console.WriteLine();
+                System.Console.WriteLine();
+            }
             //get elevation for every pixel 
-            for(int i=0;i<island.hight;i++)
+            /*for(int i=0;i<island.hight;i++)
             {
                 for(int j=0;j<island.width;j++)
                 {
@@ -41,7 +47,7 @@ namespace Island_test
                     System.Console.Write(pelevation+" ");
                 }
                 System.Console.WriteLine();
-            }
+            }*/
             
            // System.Console.WriteLine();
             //System.Console.WriteLine(Math.Atan2(testpoint.data[1] - island.centers[tag].data[1], testpoint.data[0] - island.centers[tag].data[0]));

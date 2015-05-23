@@ -32,11 +32,31 @@ public class River
     public IslandTileCorner data;
     public River left;
     public River right;
+    public int discharge=0;
     public River(IslandTileCorner c)
     {
         this.data = c;
         this.left = null;
         this.right = null;
+    }
+    public static int findDischarge(River r)
+    {
+        if(r==null)
+        {
+            return 0;
+        }
+        if(r.left==null&&r.right==null)
+        {
+           r.discharge=1;
+        }
+        else
+        {
+            r.discharge = findDischarge(r.left) + findDischarge(r.right);
+        }
+        if (r.left != null)
+            System.Console.WriteLine("left");
+        System.Console.WriteLine(r.discharge);
+        return r.discharge;
     }
 
 

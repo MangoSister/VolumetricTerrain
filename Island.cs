@@ -241,8 +241,6 @@ public class Island
 
     public List<River> generationofRivers()
     {
-        //
-        
         //generate startpoints in shore corners
         List<IslandTileCorner> lshore=new List<IslandTileCorner>();
         
@@ -262,7 +260,8 @@ public class Island
             //generation_Mainriver(highest);
             generation_Mainriver(root);
             allrivers.Add(root);
-            countm = 0;
+            countm = 0;//main river's numofcorners
+            counts = 0;//each sub river's numofcorners
 
         }
         return allrivers;
@@ -287,22 +286,18 @@ public class Island
         if (rc.right == null)
             rc.right = new River(highest);
         countm++;
-        if(countm<=num1)
+        if(countm<num1)
             generation_Mainriver(rc.right);
-        if (countm <= num1 - 3)//make the sub river dont appear too early
+        double whetherleft = sub_rnd.NextDouble();
+        if (whetherleft < 0.2)
         {
-            double whetherleft = sub_rnd.NextDouble();
-            if (whetherleft < 0.2)
+            if (rc.left == null)
             {
-                if (rc.left == null)
-                {
-                    rc.left = new River(secondhigh);
-
-                }
-                generation_Subriver(rc.left);
+                rc.left = new River(secondhigh);
             }
+            generation_Subriver(rc.left);
+            counts = 0;
         }
-        
     }
     public void generation_Subriver(River sr)
     {
@@ -316,10 +311,8 @@ public class Island
         if (sr.right == null)
             sr.right = new River(highest);
         counts++;
-        if(counts<=num2)
+        if(counts<num2)
             generation_Subriver(sr.right);
-        if (counts == num2)
-            counts = 0;
     }
 
     
