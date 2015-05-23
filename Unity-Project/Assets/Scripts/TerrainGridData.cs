@@ -10,67 +10,79 @@ namespace PCGTerrain
     public struct TerrainSample
     {
         public float _elevation;
-        public int _matIdx;
+        public float[] _matComponents;
 
-        public const int EmptyMatIdx = 0;
+        public const int matComponentNum = 6;
 
         public TerrainSample(float elevation, int matIdx)
         {
             _elevation = elevation;
-            _matIdx = matIdx;
+            _matComponents = new float[matComponentNum];
+            _matComponents[0] = 1f;
         }
     }
-    public class TerrainGrid : TerrainModifier
-    {
-        public int _width;
-        public int _height;
-        public TerrainSample[,] _samples;
-        public int _maxElevation;
 
-        public TerrainGrid(int width, int maxElevation, int height) 
-        {
-            if (width < 1 || height < 1 || maxElevation < 0)
-                throw new UnityException("invalid params");
+    //public class TerrainGrid : TerrainModifier
+    //{
+    //    public int _width;
+    //    public int _height;
+    //    public TerrainSample[,] _samples;
+    //    public int _maxElevation;
 
-            _width = width;
-            _height = height;
-            _maxElevation = maxElevation;
-            _samples = new TerrainSample[_width, _height];
-        }
+    //    public TerrainGrid(int width, int maxElevation, int height, bool addOrErode)
+    //    {
+    //        if (width < 1 || height < 1 || maxElevation < 0)
+    //            throw new UnityException("invalid params");
 
-        public Int3 LowerBound
-        { get { return new Int3(0, 0, 0); } }
+    //        _width = width;
+    //        _height = height;
+    //        _maxElevation = maxElevation;
+    //        _samples = new TerrainSample[_width, _height];
 
-        public Int3 UpperBound
-        { get { return new Int3(_width - 1, _maxElevation - 1, _height - 1); } }
+    //        AddOrErode = addOrErode;
+    //    }
 
-        public float QueryDensity(int width, int elevation, int height)
-        {
-            if(width < 0 || width >= _width || height < 0 || height >= _height) //argumented to include boundary cases
-                throw new UnityException("index exceeds bound: width: "+width+ ", height: "+height);
+    //    public Vector3 LowerBound
+    //    { get { return new Vector3(0, 0, 0); } }
 
-            if (width == _width && width == _height)
-                return _samples[width - 1, height - 1]._elevation * 3f -
-                    _samples[width - 2, height - 1]._elevation -
-                    _samples[width - 1, height - 2]._elevation - (float)elevation;
+    //    public Vector3 UpperBound
+    //    { get { return new Vector3(_width - 1, _maxElevation - 1, _height - 1); } }
 
-            else if (width == _width)
-                return _samples[width - 1, height]._elevation * 2f - _samples[width - 2, height]._elevation - (float)elevation;
+    //    public bool AddOrErode { get; set; }
+    //    public float QueryDensity(Vector3 pos)
+    //    {
+    //        //pos.x: width
+    //        //pos.y: elevation
+    //        //pos.z: height
 
-            else if (height == _height)
-                return _samples[width, height - 1]._elevation * 2f - _samples[width, height - 2]._elevation - (float)elevation;
+    //        if (width < 0 || width >= _width || height < 0 || height >= _height) //argumented to include boundary cases
+    //            throw new UnityException("index exceeds bound: width: " + width + ", height: " + height);
 
-            else
-                return _samples[width, height]._elevation - (float)elevation;
-        }
+    //        if (width == _width && width == _height)
+    //            return _samples[width - 1, height - 1]._elevation * 3f -
+    //                _samples[width - 2, height - 1]._elevation -
+    //                _samples[width - 1, height - 2]._elevation - (float)elevation;
 
-        public float QueryMaterial(int width, float elevation, int height)
-        {
-            if (width < 0 || width >= _width || height < 0 || height >= _height)
-                throw new UnityException("index exceeds bound: width: " + width + ", height: " + height);
-            
-            return _samples[width, height]._matIdx;
-        }
-    }
+    //        else if (width == _width)
+    //            return _samples[width - 1, height]._elevation * 2f - _samples[width - 2, height]._elevation - (float)elevation;
+
+    //        else if (height == _height)
+    //            return _samples[width, height - 1]._elevation * 2f - _samples[width, height - 2]._elevation - (float)elevation;
+
+    //        else
+    //            return _samples[width, height]._elevation - (float)elevation;
+    //    }
+
+    //    public float QueryMaterial(Vector3 pos)
+    //    {
+    //        //pos.x: width
+    //        //pos.y: elevation
+    //        //pos.z: height
+    //        if (pos.x < 0 || pos.x >= _width || pos.z < 0 || pos.z >= _height)
+    //            throw new UnityException("index exceeds bound: width: " + pos.x + ", height: " + pos.z);
+
+    //        return _samples[pos.x, pos.z]._matIdx;
+    //    }
+    //}
 }
 

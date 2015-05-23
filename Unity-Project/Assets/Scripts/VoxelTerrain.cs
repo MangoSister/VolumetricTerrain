@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace PCGTerrain
 {
-    public class VoxelTerrain : MonoBehaviour
+    public class VoxelTerrain
     {
         private struct CSTriangle
         {
@@ -20,18 +20,21 @@ namespace PCGTerrain
             public static int stride = sizeof(float) * 3 * 6 + sizeof(int);
         };
 
-        //x: terrain.width, y: terrain.height, z: elevation 
-        public int _width = 16, _height = 16, _elevation = 16; // voxel size
+        //x: width, y: elevation, z: height
+        public int _width = 16, _elevation = 16, _height = 16; // voxel size
         private float[, ,] _voxelSamples;
-        public const int maxSampleResolution = 257; //sample size = voxel size + 1   
+        
+        public const int maxSampleResolution = 1025; //sample size = voxel size + 1   
+        public float voidDensity { get { return Random.Range(-2f, -1f); } }
+        public float fullDensity { get { return Random.Range(1f, 2f); } }
 
         private int _blockSize = 8; // voxel size = sample size - 1
         private GameObject[, ,] _blocks;
 
         public ComputeShader _shaderNormal;
-
         public ComputeShader _shaderCollectTriNum;
         public ComputeShader _shaderMarchingCube;
+        public Material _material;
 
         private ComputeBuffer _bufferCubeEdgeFlags;
         private ComputeBuffer _bufferCornerToTriNumTable;
@@ -41,14 +44,21 @@ namespace PCGTerrain
 
         private Queue<TerrainModifier> _modifierQueue;
 
-        public Vector3 WorldPos { get { return transform.position; } }
-        public Vector3 WorldSize { get { return new Vector3(_width, _height, _elevation); } }
-        
-        public Material _material;
+        public Transform _transform;
+
+        public Vector3 TerrainOrigin { get { return _transform.position; } set { _transform.position = value; } }
+        public Vector3 TerrainSize { get { return new Vector3(_width, _elevation, _height) * _voxelScale; } }
+
+        public float _voxelScale = 1f;        
+        //voxel index -> world pos: (voxel index - 0) * _voxelScale + TerrainOrigin
+        //world pos -> voxel index (space): (world pos - TerrainOrigin) / _voxelScale
+
         public int _matControlFineness = 8;
-        public void Start()
+
+        public void Init()
         {
             if (_shaderNormal == null)
+                
                 throw new UnityException("null shader: _shaderNormal");
             
             if (_shaderCollectTriNum == null)
@@ -60,18 +70,18 @@ namespace PCGTerrain
             if (_blockSize < 2)
                 throw new UnityException("block size must be geq than 2");
 
-            if (_width % _blockSize != 0 || _height % _blockSize != 0 || _elevation % _blockSize != 0)
+            if (_width % _blockSize != 0 || _elevation % _blockSize != 0 || _height % _blockSize != 0)
                 throw new UnityException("block size must align to terrain size");
 
-            if (_width + 1 > maxSampleResolution || _height + 1 > maxSampleResolution || _elevation + 1 > maxSampleResolution)
+            if (_width + 1 > maxSampleResolution || _elevation + 1 > maxSampleResolution || _height + 1 > maxSampleResolution)
                 throw new UnityException("too high resolution (exceeds " + maxSampleResolution + ")");
 
-            _blocks = new GameObject[_width / _blockSize, _height / _blockSize, _elevation / _blockSize];
-            _voxelSamples = new float[_width + 2, _height + 2, _elevation + 2]; //augmented to provide correct normal on positive boundary
+            _blocks = new GameObject[_width / _blockSize, _elevation / _blockSize, _height / _blockSize];
+            _voxelSamples = new float[_width + 2, _elevation + 2, _height + 2]; //augmented to provide correct normal on positive boundary
             for (int x = 0; x < _width + 2; x++)
-                for (int y = 0; y < _height + 2; y++)
-                    for (int z = 0; z < _elevation + 2; z++)
-                        _voxelSamples[x, y, z] = -1f;
+                for (int y = 0; y < _elevation + 2; y++)
+                    for (int z = 0; z < _height + 2; z++)
+                        _voxelSamples[x, y, z] = voidDensity;
 
             _bufferCubeEdgeFlags = new ComputeBuffer(256, sizeof(int));
             _bufferCubeEdgeFlags.SetData(cubeEdgeFlags);
@@ -82,8 +92,8 @@ namespace PCGTerrain
 
             _nextUpdateblocks = new List<Int3>();
             for (int x = 0; x < _width / _blockSize; x++)
-                for (int y = 0; y < _height / _blockSize; y++)
-                    for (int z = 0; z < _elevation / _blockSize; z++)
+                for (int y = 0; y < _elevation / _blockSize; y++)
+                    for (int z = 0; z < _height / _blockSize; z++)
                     {
                         _blocks[x, y, z] = new GameObject();
                         _blocks[x, y, z].AddComponent<MeshFilter>();
@@ -92,16 +102,15 @@ namespace PCGTerrain
                         //_blocks[x, y, z] = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         //_blocks[x, y, z].transform.localScale = Vector3.one * (float)_blockSize;
 
-                        _blocks[x, y, z].transform.parent = this.transform;
-                        _blocks[x, y, z].transform.localPosition = new Vector3(x, y, z) * (float)_blockSize;
+                        _blocks[x, y, z].transform.parent = this._transform;
+                        var pos = new Vector3(x, y, z) * (float)_blockSize * _voxelScale;
+                        _blocks[x, y, z].transform.localPosition = pos;
+                        
 
                         //_nextUpdateblocks.Add(new Int3(x, y, z));
                     }
 
             _modifierQueue = new Queue<TerrainModifier>();
-            
-            //DEBUG: add a modifier here
-            TestModifier();
             
             //DEBUG: set a simple 3d splat map
             _matControlFineness = Mathf.Clamp(_matControlFineness, 1, 8);
@@ -137,11 +146,11 @@ namespace PCGTerrain
             controlMap.SetPixels(colors);
             controlMap.Apply();
             _material.SetTexture("_MatControl", controlMap);
-            _material.SetVector("_Offset", new Vector4(WorldPos.x, WorldPos.y, WorldPos.z, 0f));
-            _material.SetVector("_Scale", new Vector4(1 / WorldSize.x, 1 / WorldSize.y, 1 / WorldSize.z, 1));
+            _material.SetVector("_Offset", new Vector4(TerrainOrigin.x, TerrainOrigin.y, TerrainOrigin.z, 0f));
+            _material.SetVector("_Scale", new Vector4(1 / TerrainSize.x, 1 / TerrainSize.y, 1 / TerrainSize.z, 1));
         }
 
-        private void OnDestroy()
+        public void Free()
         {
             if (_bufferCubeEdgeFlags != null)
             {
@@ -160,27 +169,11 @@ namespace PCGTerrain
                 _bufferTriangleConnectionTable.Release();
                 _bufferTriangleConnectionTable = null;
             }
-        }
+        }   
 
-        private void TestModifier()
+        public void InsertModifier(TerrainModifier modifier)
         {
-            //a sphere density function
-            //Vector3 center = new Vector3((float)_width, (float)_height, (float)_elevation) * 0.5f;
-            //float radius = 4f;
-            //_modifierQueue.Enqueue(new SphereModifier(center, radius));
-           
-            //a heightmap grid
-            //TerrainGrid terrainInfo = new TerrainGrid(17, 9, 17); //sample (2d)
-            //for (int x = 0; x <= 16; x++)
-            //    for (int z = 0; z <= 16; z++)
-            //    {
-            //        terrainInfo._samples[x, z]._elevation = 8 - 0.5f * (new Vector2(x - 8, z - 8)).magnitude * Random.Range(0.8f, 1.2f);
-            //    }
-            //_modifierQueue.Enqueue(terrainInfo);
-
-            //a noise function
-            RidgedMultifractalModifier noise = new RidgedMultifractalModifier(0, 4, 0.06f, 2.0f);
-            _modifierQueue.Enqueue(noise);
+            _modifierQueue.Enqueue(modifier);
         }
         public void Update()
         {
@@ -189,20 +182,46 @@ namespace PCGTerrain
             {
                 var modifier = _modifierQueue.Peek();
                 _modifierQueue.Dequeue();
-                
-                Int3 low = modifier.LowerBound;
-                low._x = Mathf.Max(low._x, 0); low._y = Mathf.Max(low._y, 0); low._z = Mathf.Max(low._z, 0);   
-                Int3 up = modifier.UpperBound;
-                up._x = Mathf.Min(up._x, _width + 1); up._y = Mathf.Min(up._y, _height + 1); up._z = Mathf.Min(up._z, _elevation + 1);   
 
-                for (int x = low._x; x <= up._x; x++)
-                    for (int y = low._y; y <= up._y; y++)
-                        for (int z = low._z; z <= up._z; z++)
-                        { _voxelSamples[x, y, z] = modifier.QueryDensity(x, y, z); }
+                //voxel index -> world pos: (voxel index - 0) * _voxelScale + TerrainOrigin
+                //world pos -> voxel index (space): (world pos - TerrainOrigin) / _voxelScale
+
+                Vector3 worldLow = modifier.LowerBound;
+                worldLow = (worldLow - TerrainOrigin) / _voxelScale;
+                Int3 low = new Int3(Mathf.FloorToInt(worldLow.x), Mathf.FloorToInt(worldLow.y), Mathf.FloorToInt(worldLow.z));
+                low._x = Mathf.Max(low._x, 0); low._y = Mathf.Max(low._y, 0); low._z = Mathf.Max(low._z, 0);   
+
+                Vector3 worldUp = modifier.UpperBound;
+                worldUp = (worldUp - TerrainOrigin) / _voxelScale;
+                Int3 up = new Int3(Mathf.CeilToInt(worldUp.x), Mathf.CeilToInt(worldUp.y), Mathf.CeilToInt(worldUp.z));
+                up._x = Mathf.Min(up._x, _width + 1); up._y = Mathf.Min(up._y, _elevation + 1); up._z = Mathf.Min(up._z, _height + 1);
+               
+                if (modifier.AddOrErode == true)
+                {
+                    for (int x = low._x; x <= up._x; x++)
+                        for (int y = low._y; y <= up._y; y++)
+                            for (int z = low._z; z <= up._z; z++)
+                            {
+                                var worldPos = new Vector3(x, y, z) * _voxelScale + TerrainOrigin;
+                                var md = Mathf.Clamp(modifier.QueryDensity(worldPos), voidDensity, fullDensity);
+                                _voxelSamples[x, y, z] = Mathf.Max(_voxelSamples[x, y, z], md);
+                            }
+                }
+                else
+                {
+                    for (int x = low._x; x <= up._x; x++)
+                        for (int y = low._y; y <= up._y; y++)
+                            for (int z = low._z; z <= up._z; z++)
+                            {
+                                var worldPos = new Vector3(x, y, z) * _voxelScale + TerrainOrigin;
+                                var minus_md = - Mathf.Clamp(modifier.QueryDensity(worldPos), voidDensity, fullDensity);
+                                _voxelSamples[x, y, z] = Mathf.Clamp(Mathf.Min(_voxelSamples[x, y, z], minus_md), voidDensity, fullDensity);
+                            }
+                }
 
                 for (int x = 0; x < _width / _blockSize; x++)
-                    for (int y = 0; y < _height / _blockSize; y++)
-                        for (int z = 0; z < _elevation / _blockSize; z++)
+                    for (int y = 0; y < _elevation / _blockSize; y++)
+                        for (int z = 0; z < _height / _blockSize; z++)
                         {
                             if( (up._x >= x * _blockSize && low._x <= x*_blockSize + _blockSize) &&
                                 (up._y >= y * _blockSize && low._y <= y*_blockSize + _blockSize) &&
@@ -219,7 +238,7 @@ namespace PCGTerrain
                 BatchUpdate();
             _nextUpdateblocks.Clear();
         }
-        public void BatchUpdate()
+        private void BatchUpdate()
         {
             if (_nextUpdateblocks.Count == 0)
                 return;
@@ -281,6 +300,16 @@ namespace PCGTerrain
             
             int[] triNum = new int[1];
             bufferTriNum.GetData(triNum);
+            if(triNum[0] == 0)
+            {
+                //no triangles, early exit
+                bufferNormals.Release();
+                bufferSamples.Release();
+
+                bufferTriNum.Release();
+                bufferCornerFlags.Release();
+                return;
+            }
             //Debug.Log("triangles count " + triNum[0]);
             
             //STAGE II: do marching cube
@@ -314,9 +343,9 @@ namespace PCGTerrain
             }
             foreach (var vt in csTriangles)
             {
-                vertices[vt._block].Add(vt._position0);
-                vertices[vt._block].Add(vt._position1);
-                vertices[vt._block].Add(vt._position2);
+                vertices[vt._block].Add(vt._position0 * _voxelScale);
+                vertices[vt._block].Add(vt._position1 * _voxelScale);
+                vertices[vt._block].Add(vt._position2 * _voxelScale);
 
                 normals[vt._block].Add(vt._normal0);
                 normals[vt._block].Add(vt._normal1);
