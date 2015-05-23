@@ -4,7 +4,6 @@ using BenTools.Mathematics;
 
 public class IslandTileEdge
 {
-    //public HashSet<IslandTile> neighbors = new HashSet<IslandTile>();
     public VoronoiEdge edge;
     public IslandTileCorner cornera;
     public IslandTileCorner cornerb;
@@ -17,3 +16,4 @@ public class IslandTileEdge
         cornerb = IslandTileCorner.Index[e.VVertexB];
     }
 }
+

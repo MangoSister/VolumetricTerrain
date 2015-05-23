@@ -2,8 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using BenTools.Mathematics;
-//using BenTools.Data;
-//using Microsoft.DirectX;
+
 
 public class IslandTile
 {
@@ -11,9 +10,11 @@ public class IslandTile
     public HashSet<IslandTileEdge> edges=new HashSet<IslandTileEdge>();//edges belong to this tile
     public HashSet<IslandTileCorner> corners = new HashSet<IslandTileCorner>();//all corners in this tile
     public HashSet<Vector> neighbors = new HashSet<Vector>();//store neighber tiles' center positon
-    
+    public Dictionary<double, IslandTileCorner> angle_corner = new Dictionary<double, IslandTileCorner>();
     public bool iswater = false;
     public bool isshore = false;
+    public bool hasriver = false;
+    public int biome=3;//biome type:0 ocean 1 beach 2 grassland 3 rain forest 4 bare moutain(rock and etc) 5 snow
     public float elevation=float.MaxValue;
     public int width;//these two factor are for boundary infinity
     public int hight;
@@ -25,6 +26,7 @@ public class IslandTile
         hight = h;
         center = c;
         AddEdges(g);
+
     }
     public void AddEdges(VoronoiGraph g)
     {
@@ -117,7 +119,103 @@ public class IslandTile
        // total_corners.Add(ca);
         corners.Add(cb);
         //total_corners.Add(cb);
-
-
     }
+
+
+
+    //get location information of a pixel. return two corners which are in triangle's bottom
+    public List<IslandTileCorner> pixel_loation(Vector pixel)
+    {
+        //vector between center and given pixel
+        Vector e0 = new Vector(pixel.data[0] - center.data[0], pixel.data[1] - center.data[1]);
+        //e0.data[0]=pixel.data[0]-center.data[0];
+        //e0.data[1]=pixel.data[1]-center.data[1];
+        //double theta0 = Math.Acos(e0.data[0] / (Math.Sqrt(e0.data[0] * e0.data[0] + e0.data[1] * e0.data[1])));
+        double theta0 = Math.Atan2(e0.data[1], e0.data[0]);
+        if (theta0 < 0)
+            theta0 += 2 * Math.PI;
+        //System.Console.WriteLine("theta0=  " + theta0);
+        foreach(var c in corners)
+        {
+            //Vector between each corner and center 
+            Vector e1 = new Vector(c.position.data[0] - center.data[0], c.position.data[1] - center.data[1]);
+           // e1.data[0] = c.position.data[0] - center.data[0];
+            //e1.data[1] = c.position.data[1] - center.data[1];
+            //double theta1 = Math.Acos(e1.data[0] / (Math.Sqrt(e1.data[0] * e1.data[0] + e1.data[1] * e1.data[1])));
+            //get it's angle
+            double theta1 = Math.Atan2(e1.data[1], e1.data[0]);
+            if (theta1 < 0)
+                theta1 += 2 * Math.PI;
+            angle_corner[theta1] = c;
+        }
+        /*foreach(var item in angle_corner.Keys)
+        {
+            System.Console.WriteLine(item);
+        }*/
+        List<double> angle = new List<double>(angle_corner.Keys);
+        //sort angles
+        angle.Sort();
+        /*for(int i=0;i<angle.Count;i++)
+        {
+            System.Console.WriteLine(angle[i]);
+        }*/
+        //find which triangle this pixel is in
+        int forward=0,backward=0;
+        for(int i=0;i<angle.Count;i++)
+        {
+            if(theta0>=angle[angle.Count-1])
+            {
+                forward=angle.Count-1;
+                backward=0;
+                break;
+            }
+            else if(theta0<=angle[i])
+            {
+                if(i==0)
+                {
+                    forward = 0;
+                    backward = angle.Count - 1;
+                    break;
+                }
+                forward = i;
+                backward = i - 1;
+                break;
+            }
+            
+        }
+        //System.Console.WriteLine("theta1= "+angle[forward] + "    " + angle[backward]);
+        List<IslandTileCorner> bottomcorners = new List<IslandTileCorner>();
+        bottomcorners.Add(angle_corner[angle[forward]]);
+        bottomcorners.Add(angle_corner[angle[backward]]);
+        return bottomcorners;
+    }
+
+
+
+    //calculate elevation for each pixel
+    public float PixelElevation(Vector p, List<IslandTileCorner> bottomcorners)
+    {
+        //note: e0=u*e1+v*e2
+        IslandTileCorner c1 = bottomcorners[0];
+        IslandTileCorner c2 = bottomcorners[1];
+        Vector e0 = new Vector(p.data[0] - center.data[0], p.data[1] - center.data[1]);
+        //e0.data[0] = p.data[0] - center.data[0];
+        //e0.data[1] = p.data[1] - center.data[1];
+        Vector e1 = new Vector(c1.position.data[0] - center.data[0], c1.position.data[1] - center.data[1]);
+        //e1.data[0] = c1.position.data[0] - center.data[0];
+        //e1.data[1] = c1.position.data[1] - center.data[1];
+        Vector e2 = new Vector(c2.position.data[0] - center.data[0], c2.position.data[1] - center.data[1]);
+        //e2.data[0] = c2.position.data[0] - center.data[0];
+        //e2.data[1] = c2.position.data[1] - center.data[1];
+        double temp = e1.data[0] * e2.data[1] - e1.data[1] * e2.data[0];
+        double u = (e0.data[0] * e2.data[1] - e0.data[1] * e2.data[0]) / temp;
+        double v = (e0.data[1] * e1.data[0] - e0.data[0] * e1.data[1]) / temp;
+        //System.Console.WriteLine(u + " " + v);
+        float pixelelevation;
+        pixelelevation = (float)(elevation + (c1.elevation - elevation) * u + (c2.elevation - elevation) * v);
+        return pixelelevation;
+    }
+
+
+
 }
