@@ -2,10 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace PCGTerrain
+namespace PCGTerrain.Render
 {
     /// <summary>
-    /// Data structure for 
+    /// Data structure for terrain "heightmap" (with other infos)
     /// </summary>
     public struct TerrainSample
     {

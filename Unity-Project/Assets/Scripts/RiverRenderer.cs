@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace PCGTerrain
+namespace PCGTerrain.Render
 {
     public class RiverRenderer
     {
@@ -83,9 +83,9 @@ namespace PCGTerrain
             return objs;
         }
 
-        public List<PCGTerrain.CylinderModifier> GenerateModifier()
+        public List<CylinderModifier> GenerateModifier()
         {
-            List<PCGTerrain.CylinderModifier> modifiers = new List<PCGTerrain.CylinderModifier>();
+            List<CylinderModifier> modifiers = new List<CylinderModifier>();
             Queue<RiverNode> nodeQueue = new Queue<RiverNode>();
             nodeQueue.Enqueue(_root);
 
@@ -95,7 +95,7 @@ namespace PCGTerrain
                 foreach (var up in curr._upstream)
                 {
                     var axis = up._pos - curr._pos;
-                    var modifier = new PCGTerrain.CylinderModifier(curr._pos, axis.normalized, axis.magnitude, up._flux, false);
+                    var modifier = new CylinderModifier(curr._pos, axis.normalized, axis.magnitude, up._flux, false);
                     modifiers.Add(modifier);
                     nodeQueue.Enqueue(up);
                 }
@@ -132,9 +132,9 @@ namespace PCGTerrain
             {
                 float[,] disp = new float[(int)Mathf.Pow(2, dispTime) - 1, radialVertCount];
 
-                Queue<PCGTerrain.Int2> indexQueue = new Queue<PCGTerrain.Int2>();
+                Queue<Int2> indexQueue = new Queue<Int2>();
                 int mid = disp.GetLength(0) / 2;
-                indexQueue.Enqueue(new PCGTerrain.Int2(mid, dispTime));
+                indexQueue.Enqueue(new Int2(mid, dispTime));
                 while (indexQueue.Count > 0)
                 {
                     var curr = indexQueue.Dequeue();
@@ -147,8 +147,8 @@ namespace PCGTerrain
                     currLevel--;
                     if (currLevel > 0)
                     {
-                        indexQueue.Enqueue(new PCGTerrain.Int2(currIndex - currLevel, currLevel));
-                        indexQueue.Enqueue(new PCGTerrain.Int2(currIndex + currLevel, currLevel));
+                        indexQueue.Enqueue(new Int2(currIndex - currLevel, currLevel));
+                        indexQueue.Enqueue(new Int2(currIndex + currLevel, currLevel));
                     }
                 }
 

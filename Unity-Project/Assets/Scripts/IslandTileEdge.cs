@@ -2,18 +2,20 @@
 using System.Collections.Generic;
 using BenTools.Mathematics;
 
-public class IslandTileEdge
+namespace PCGTerrain.Generation
 {
-    public VoronoiEdge edge;
-    public IslandTileCorner cornera;
-    public IslandTileCorner cornerb;
-
-    //constructor of IslandTileEdge
-    public IslandTileEdge(VoronoiEdge e)
+    public class IslandTileEdge
     {
-        edge = e;
-        cornera = IslandTileCorner.Index[e.VVertexA];
-        cornerb = IslandTileCorner.Index[e.VVertexB];
+        public VoronoiEdge edge;
+        public IslandTileCorner cornera;
+        public IslandTileCorner cornerb;
+
+        //constructor of IslandTileEdge
+        public IslandTileEdge(VoronoiEdge e)
+        {
+            edge = e;
+            cornera = IslandTileCorner.Index[e.VVertexA];
+            cornerb = IslandTileCorner.Index[e.VVertexB];
+        }
     }
 }
-

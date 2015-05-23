@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using LibNoise;
 
-namespace PCGTerrain
+namespace PCGTerrain.Render
 {
     public struct Int3 : IEquatable<Int3>
     {

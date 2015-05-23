@@ -1,9 +1,10 @@
-//The author of this source code is BenDi,and this code is licensed 
-//under The Mozilla Public License 1.1 (MPL 1.1).The soure code ToolBox.cs,
-//PriotityQueue.cs,and Vector.cs  are also writed by BenDi. What's more, 
+//The original author of this file is BenDi,and this code is licensed 
+//under The Mozilla Public License 1.1 (MPL 1.1). What's more, 
 //the author are agreed with educational and commercial use of his code.
-// I used this code for  the generating the Voronoi Graph Edges which is 
-//the first stage of my project. 
+//We used this code for  the generating the Voronoi Graph Edges which is 
+//the first stage of our project. 
+//http://www.codeproject.com/Articles/11275/Fortune-s-Voronoi-algorithm-implemented-in-C
+
 using System;
 using System.Collections;
 using BenTools.Data;

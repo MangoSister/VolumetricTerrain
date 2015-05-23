@@ -2,7 +2,7 @@
 using System;
 using System.Collections;
 
-namespace PCGTerrain
+namespace PCGTerrain.Render
 {
     public class TerrainEngine : MonoBehaviour
     {

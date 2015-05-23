@@ -3,9 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using BenTools.Mathematics;
 
-namespace Island_test
+namespace PCGTerrain.Generation
 {
-    class Program
+    class Example
     {
 
         static void Main(string[] args)
