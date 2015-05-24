@@ -65,18 +65,18 @@ namespace PCGTerrain.Render
         }
 
         //only square size by now
-        public IslandModifier(Island island, int resolution, bool addOrErode = true)
+        public IslandModifier(Island island, int widthRes, int heightRes, bool addOrErode = true)
         {
             _island = island;
             AddOrErode = addOrErode;
 
             //generate a heightmap based on resolution    
-            _heightmap = new float[resolution, resolution];
+            _heightmap = new float[widthRes, heightRes];
 
-            for(int x = 0; x< resolution; x++)
-                for(int y = 0; y <resolution; y++)
+            for(int x = 0; x< widthRes; x++)
+                for(int y = 0; y <heightRes; y++)
                 {
-                    var pos = new BenTools.Mathematics.Vector(_island.width / (float)resolution * x, _island.width / (float)resolution * y);
+                    var pos = new BenTools.Mathematics.Vector(_island.width / (float)widthRes * x, _island.width / (float)heightRes * y);
                     _heightmap[x, y] = _island.GetElevation(pos);
                 }
         }

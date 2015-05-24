@@ -28,7 +28,7 @@ namespace PCGTerrain.Render
         public float voidDensity { get { return Random.Range(-2f, -1f); } }
         public float fullDensity { get { return Random.Range(1f, 2f); } }
 
-        private int _blockSize = 8; // voxel size = sample size - 1
+        public const int blockSize = 8; // voxel size = sample size - 1
         private GameObject[, ,] _blocks;
 
         public ComputeShader _shaderNormal;
@@ -67,16 +67,16 @@ namespace PCGTerrain.Render
             if (_shaderMarchingCube == null)
                 throw new UnityException("null shader: _shaderMarchingCube");
 
-            if (_blockSize < 2)
+            if (blockSize < 2)
                 throw new UnityException("block size must be geq than 2");
 
-            if (_width % _blockSize != 0 || _elevation % _blockSize != 0 || _height % _blockSize != 0)
+            if (_width % blockSize != 0 || _elevation % blockSize != 0 || _height % blockSize != 0)
                 throw new UnityException("block size must align to terrain size");
 
             if (_width + 1 > maxSampleResolution || _elevation + 1 > maxSampleResolution || _height + 1 > maxSampleResolution)
                 throw new UnityException("too high resolution (exceeds " + maxSampleResolution + ")");
 
-            _blocks = new GameObject[_width / _blockSize, _elevation / _blockSize, _height / _blockSize];
+            _blocks = new GameObject[_width / blockSize, _elevation / blockSize, _height / blockSize];
             _voxelSamples = new float[_width + 2, _elevation + 2, _height + 2]; //augmented to provide correct normal on positive boundary
             for (int x = 0; x < _width + 2; x++)
                 for (int y = 0; y < _elevation + 2; y++)
@@ -91,9 +91,9 @@ namespace PCGTerrain.Render
             _bufferTriangleConnectionTable.SetData(triangleConnectionTable);
 
             _nextUpdateblocks = new List<Int3>();
-            for (int x = 0; x < _width / _blockSize; x++)
-                for (int y = 0; y < _elevation / _blockSize; y++)
-                    for (int z = 0; z < _height / _blockSize; z++)
+            for (int x = 0; x < _width / blockSize; x++)
+                for (int y = 0; y < _elevation / blockSize; y++)
+                    for (int z = 0; z < _height / blockSize; z++)
                     {
                         _blocks[x, y, z] = new GameObject();
                         _blocks[x, y, z].AddComponent<MeshFilter>();
@@ -103,7 +103,7 @@ namespace PCGTerrain.Render
                         //_blocks[x, y, z].transform.localScale = Vector3.one * (float)_blockSize;
 
                         _blocks[x, y, z].transform.parent = this._transform;
-                        var pos = new Vector3(x, y, z) * (float)_blockSize * _voxelScale;
+                        var pos = new Vector3(x, y, z) * (float)blockSize * _voxelScale;
                         _blocks[x, y, z].transform.localPosition = pos;
                     }
 
@@ -146,7 +146,7 @@ namespace PCGTerrain.Render
             _material.SetVector("_Offset", new Vector4(TerrainOrigin.x, TerrainOrigin.y, TerrainOrigin.z, 0f));
             _material.SetVector("_Scale", new Vector4(1 / TerrainSize.x, 1 / TerrainSize.y, 1 / TerrainSize.z, 1));
         }
-
+    
         public void Free()
         {
             if (_bufferCubeEdgeFlags != null)
@@ -216,13 +216,13 @@ namespace PCGTerrain.Render
                             }
                 }
 
-                for (int x = 0; x < _width / _blockSize; x++)
-                    for (int y = 0; y < _elevation / _blockSize; y++)
-                        for (int z = 0; z < _height / _blockSize; z++)
+                for (int x = 0; x < _width / blockSize; x++)
+                    for (int y = 0; y < _elevation / blockSize; y++)
+                        for (int z = 0; z < _height / blockSize; z++)
                         {
-                            if( (up._x >= x * _blockSize && low._x <= x*_blockSize + _blockSize) &&
-                                (up._y >= y * _blockSize && low._y <= y*_blockSize + _blockSize) &&
-                                (up._z >= z * _blockSize && low._z <= z*_blockSize + _blockSize) )
+                            if( (up._x >= x * blockSize && low._x <= x*blockSize + blockSize) &&
+                                (up._y >= y * blockSize && low._y <= y*blockSize + blockSize) &&
+                                (up._z >= z * blockSize && low._z <= z*blockSize + blockSize) )
                             {
                                 updateBlocks.Add(new Int3(x, y, z));
                             }
@@ -240,8 +240,8 @@ namespace PCGTerrain.Render
             if (_nextUpdateblocks.Count == 0)
                 return;
 
-            int ag1BlockSize = _blockSize + 1;
-            int ag2BlockSize = _blockSize + 2;
+            int ag1BlockSize = blockSize + 1;
+            int ag2BlockSize = blockSize + 2;
 
             float[] samples = new float[_nextUpdateblocks.Count * (ag2BlockSize) * (ag2BlockSize) * (ag2BlockSize)];
             for (int blockNum = 0; blockNum < _nextUpdateblocks.Count; blockNum++)
@@ -252,9 +252,9 @@ namespace PCGTerrain.Render
                     for (int iy = 0; iy < ag2BlockSize; iy++)
                         for (int iz = 0; iz < ag2BlockSize; iz++)
                         {
-                            var queryX = x * _blockSize + ix;
-                            var queryY = y * _blockSize + iy;
-                            var queryZ = z * _blockSize + iz;
+                            var queryX = x * blockSize + ix;
+                            var queryY = y * blockSize + iy;
+                            var queryZ = z * blockSize + iz;
 
                             //preserve value
                             samples[ix +
@@ -286,7 +286,7 @@ namespace PCGTerrain.Render
                 throw new UnityException("Fail to find kernel of shader: " + _shaderCollectTriNum.name);
             ComputeBuffer bufferTriNum = new ComputeBuffer(1, sizeof(int));
             bufferTriNum.SetData(new int[] { 0 });
-            ComputeBuffer bufferCornerFlags = new ComputeBuffer(_nextUpdateblocks.Count * _blockSize * _blockSize * _blockSize, sizeof(int));
+            ComputeBuffer bufferCornerFlags = new ComputeBuffer(_nextUpdateblocks.Count * blockSize * blockSize * blockSize, sizeof(int));
             
             _shaderCollectTriNum.SetBuffer(ctnKernel, "_Samples", bufferSamples);
             _shaderCollectTriNum.SetBuffer(ctnKernel, "_CornerToTriNumTable", _bufferCornerToTriNumTable);

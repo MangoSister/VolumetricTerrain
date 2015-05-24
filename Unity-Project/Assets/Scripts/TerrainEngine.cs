@@ -55,10 +55,12 @@ namespace PCGTerrain.Render
         }
 
         // Use this for initialization
-        void Start()
+        public void Init(int mapWidth, int mapHeight, float maxElevation, int mapRelaxTime, int mapPolygonNum, int riverNum, int voxelScale, int seed)
         {
-            _island = new Island(512, 512, 2, 800, 5, 128f);
-            var z = _island.GetElevation(new BenTools.Mathematics.Vector(256, 256));
+            if (_voxelTerrain != null)
+                _voxelTerrain.Free();
+
+            _island = new Island(mapWidth, mapHeight, mapRelaxTime, mapPolygonNum, riverNum, maxElevation, seed);
             _voxelTerrain = new VoxelTerrain();
             _riverRenderer = new RiverRenderer();
 
@@ -68,36 +70,40 @@ namespace PCGTerrain.Render
             _voxelTerrain._shaderMarchingCube = _vtShaderMarchingCube;
             _voxelTerrain._material = _vtMaterial;
 
-            _voxelTerrain._width = 256;
-            _voxelTerrain._elevation = 64;
-            _voxelTerrain._height = 256;
+            _voxelTerrain._voxelScale = voxelScale;
+            _voxelTerrain._width = Mathf.CeilToInt(mapWidth / (float)voxelScale / (float)VoxelTerrain.blockSize) * VoxelTerrain.blockSize;
+            _voxelTerrain._height = Mathf.CeilToInt(mapHeight / (float)voxelScale / (float)VoxelTerrain.blockSize) * VoxelTerrain.blockSize;
+            _voxelTerrain._elevation = Mathf.CeilToInt(maxElevation / (float)voxelScale / (float)VoxelTerrain.blockSize) * VoxelTerrain.blockSize;  
             _voxelTerrain.TerrainOrigin = Vector3.zero;
-            _voxelTerrain._voxelScale = 2;
+            
 
             _riverRenderer._transform = transform;
             _riverRenderer._waterMat = _riverMaterial;
 
+            
             _voxelTerrain.Init();
-            _voxelTerrain.InsertModifier(new IslandModifier(_island, 512, true));
+            _voxelTerrain.InsertModifier(new IslandModifier(_island, mapWidth / voxelScale, mapHeight / voxelScale, true));
+
             //TestModifier();
 
-            //_riverRenderer.Init();   
-            //_riverRenderer.GenerateRiverObjects();
-            //var modifiers = _riverRenderer.GenerateModifier();
-            //foreach (var m in modifiers)
-            //    _voxelTerrain.InsertModifier(m);
+            _riverRenderer.Init();
+            _riverRenderer.GenerateRiverObjects();
+            var modifiers = _riverRenderer.GenerateModifier();
+            foreach (var m in modifiers)
+                _voxelTerrain.InsertModifier(m);
         }
 
         // Update is called once per frame
         void Update()
         {
-            
-            _voxelTerrain.Update();
+            if (_voxelTerrain != null)
+                _voxelTerrain.Update();
         }
 
         void OnDestroy()
         {
-            _voxelTerrain.Free();
+            if (_voxelTerrain != null)
+                _voxelTerrain.Free();
         }
     }
 }

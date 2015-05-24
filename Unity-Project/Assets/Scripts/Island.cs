@@ -8,7 +8,7 @@ namespace PCGTerrain.Generation
     public class Island
     {
         //-------------Data---------------------------
-        public int relaxation;//relaxation times
+        public int relaxationTime;//relaxation times
         public int width;//screen width 
         public int height;//screen hight
         public int num_of_rivers;
@@ -17,7 +17,7 @@ namespace PCGTerrain.Generation
         public int num2;// corner num of sub river
         public int countm = 0;// for remenbering the num of corner of a main river branch
         public int counts = 0;//for remenbering the num of corner of a sub river branch
-        public float _maxElevation = 0;
+        public float _maxElevation;
         public NearestNeighbor NN;//class for searching nearest center
         public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
         public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
@@ -27,19 +27,22 @@ namespace PCGTerrain.Generation
         public List<Vector> centers = new List<Vector>();//stores all tiles' positions
         public List<Vector> landcenters = new List<Vector>();//stores land tiles' postions
         public List<River> allrivers = new List<River>();//all rivers
-        public List<River> rivers;//each river is a binary tree through this you can travesing all river corners by tree's order
-        Random sub_rnd = new Random();//decide whether there is a subriver
-        //class constractor
-        public Island(int w, int h, int r, int numc, int numr, float maxElevation)
-        {
-            width = w;
-            height = h;
-            relaxation = r;
-            num_of_centers = numc;
-            num_of_rivers = numr;
-            _maxElevation = maxElevation;
+        public List<River> rivers;//each river is a binary tree through this you can travesing all river corners by tree's order        
 
-            num1 = Math.Max(w / 50, h / 50);
+        private Random rnd; //random generator
+        //class constractor
+        public Island(int width, int height, int relaxTime, int centerNum, int riverNum, float maxElevation, int seed = 0)
+        {
+            this.width = width;
+            this.height = height;
+            this.relaxationTime = relaxTime;
+            this.num_of_centers = centerNum;
+            this.num_of_rivers = riverNum;
+            this._maxElevation = maxElevation;
+
+            rnd = new Random(seed);
+
+            num1 = Math.Max(width / 50, height / 50);
             num2 = num1 / 2;
             centers = random_centers(width, height, num_of_centers);
             VoronoiGraph vg = Fortune.ComputeVoronoiGraph(centers);//run voronoi diagram algorithm
@@ -49,7 +52,7 @@ namespace PCGTerrain.Generation
             }
             //call improveRandomPoints function "relaxation" times
 
-            for (int re = 0; re < relaxation; re++)
+            for (int re = 0; re < relaxationTime; re++)
             {
                 centers = improveRandomPoints(Tiles, centers);
                 VoronoiGraph vGraph = Fortune.ComputeVoronoiGraph(centers);
@@ -205,7 +208,7 @@ namespace PCGTerrain.Generation
         //----------------------1.get initial random points --------------------
         public List<Vector> random_centers(int width, int hight, int num_of_centers)
         {
-            Random rnd = new Random();
+           
             HashSet<int> points = new HashSet<int>();
             List<Vector> poi = new List<Vector>();
             while (points.Count < num_of_centers)
@@ -328,7 +331,7 @@ namespace PCGTerrain.Generation
             countm++;
             if (countm < num1)
                 generation_Mainriver(rc.right);
-            double whetherleft = sub_rnd.NextDouble();
+            double whetherleft = rnd.NextDouble();
 
             if (whetherleft < 0.2)
             {
