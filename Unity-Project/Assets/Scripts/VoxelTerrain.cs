@@ -105,9 +105,6 @@ namespace PCGTerrain.Render
                         _blocks[x, y, z].transform.parent = this._transform;
                         var pos = new Vector3(x, y, z) * (float)_blockSize * _voxelScale;
                         _blocks[x, y, z].transform.localPosition = pos;
-                        
-
-                        //_nextUpdateblocks.Add(new Int3(x, y, z));
                     }
 
             _modifierQueue = new Queue<TerrainModifier>();

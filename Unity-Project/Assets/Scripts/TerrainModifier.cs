@@ -87,26 +87,10 @@ namespace PCGTerrain.Render
         public Vector2 _low, _up;
 
         public Vector3 LowerBound
-        {
-            get
-            {
-                return new Vector3(
-                        _low.x,
-                        float.MinValue,
-                        _low.y);
-            }
-        }
+        { get { return new Vector3(_low.x, float.MinValue, _low.y); } }
 
         public Vector3 UpperBound
-        {
-            get
-            {
-                return new Vector3(
-                        _up.x,
-                        _height + 1,
-                        _up.y);
-            }
-        }
+        { get { return new Vector3(_up.x, _height + 1, _up.y); } }
         
         public PlaneModifier(float height, Vector2 low, Vector2 up, bool addOrErode)
         {
@@ -131,23 +115,9 @@ namespace PCGTerrain.Render
         public float _radius;
         public bool AddOrErode { get; set; }
         public Vector3 LowerBound
-        {
-            get
-            {
-                return new Vector3(_center.x - _radius,
-                                _center.y - _radius,
-                                _center.z - _radius);
-            }
-        }
+        { get { return new Vector3(_center.x - _radius, _center.y - _radius, _center.z - _radius); } }
         public Vector3 UpperBound
-        {
-            get
-            {
-                return new Vector3(_center.x + _radius,
-                                _center.y + _radius,
-                                _center.z + _radius);
-            }
-        }
+        { get { return new Vector3(_center.x + _radius, _center.y + _radius, _center.z + _radius); } }
         public float QueryDensity(Vector3 pos)
         {
             return _radius - (pos - _center).magnitude;

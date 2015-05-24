@@ -10,14 +10,14 @@ namespace PCGTerrain.Generation
         //-------------Data---------------------------
         public int relaxation;//relaxation times
         public int width;//screen width 
-        public int hight;//screen hight
+        public int height;//screen hight
         public int num_of_rivers;
         public int num_of_centers;//number of centers
         public int num1;//corner num of main river
         public int num2;// corner num of sub river
         public int countm = 0;// for remenbering the num of corner of a main river branch
         public int counts = 0;//for remenbering the num of corner of a sub river branch
-        public float maxelevation = 0;
+        public float _maxElevation = 0;
         public NearestNeighbor NN;//class for searching nearest center
         public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
         public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
@@ -30,20 +30,22 @@ namespace PCGTerrain.Generation
         public List<River> rivers;//each river is a binary tree through this you can travesing all river corners by tree's order
         Random sub_rnd = new Random();//decide whether there is a subriver
         //class constractor
-        public Island(int w, int h, int r, int numc, int numr)
+        public Island(int w, int h, int r, int numc, int numr, float maxElevation)
         {
             width = w;
-            hight = h;
+            height = h;
             relaxation = r;
             num_of_centers = numc;
             num_of_rivers = numr;
+            _maxElevation = maxElevation;
+
             num1 = Math.Max(w / 50, h / 50);
             num2 = num1 / 2;
-            centers = random_centers(width, hight, num_of_centers);
+            centers = random_centers(width, height, num_of_centers);
             VoronoiGraph vg = Fortune.ComputeVoronoiGraph(centers);//run voronoi diagram algorithm
             for (int i = 0; i < centers.Count; i++)//Initialize and store IslandTiles
             {
-                Tiles[centers[i]] = new IslandTile(centers[i], vg, width, hight);
+                Tiles[centers[i]] = new IslandTile(centers[i], vg, width, height);
             }
             //call improveRandomPoints function "relaxation" times
 
@@ -54,7 +56,7 @@ namespace PCGTerrain.Generation
                 Tiles = new Dictionary<Vector, IslandTile>();
                 for (int j = 0; j < centers.Count; j++)
                 {
-                    Tiles[centers[j]] = new IslandTile(centers[j], vGraph, width, hight);
+                    Tiles[centers[j]] = new IslandTile(centers[j], vGraph, width, height);
                 }
             }
             NN = new NearestNeighbor(centers);//builded kdtree
@@ -143,8 +145,11 @@ namespace PCGTerrain.Generation
                     {
                         foreach (var s in shore)
                         {
-                            float elevation = (float)Math.Sqrt(Math.Pow((c.position - s.position).data[0], 2) + Math.Pow(
-                                (c.position - s.position).data[1], 2));
+                            float elevation = (float)Math.Sqrt((c.position - s.position).data[0] * (c.position - s.position).data[0] +
+                                                                (c.position - s.position).data[1] * (c.position - s.position).data[1]);
+                            if (elevation > _maxElevation)
+                                elevation = _maxElevation;
+
                             if (c.elevation > elevation)
                                 c.elevation = elevation;
                         }
@@ -368,12 +373,12 @@ namespace PCGTerrain.Generation
                 {
                     item.biome = 1;//beach
                 }
-                if (item.elevation >= (0.9 * maxelevation))
+                if (item.elevation >= (0.9 * _maxElevation))
                 {
                     //tiles above 0.9maxelevation supposed to be snow
                     item.biome = 5;
                 }
-                if ((item.elevation < 0.9 * maxelevation) && (item.elevation >= 0.6 * maxelevation))
+                if ((item.elevation < 0.9 * _maxElevation) && (item.elevation >= 0.6 * _maxElevation))
                 {
                     item.biome = 4;//rock
                 }
@@ -388,7 +393,7 @@ namespace PCGTerrain.Generation
 
             }
         }
-        public float getfinalelevation(Vector p)
+        public float GetElevation(Vector p)
         {
             float pelevation;//elevation of this pixel
             //find nearist center

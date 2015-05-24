@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using PCGTerrain.Generation;
 
 namespace PCGTerrain.Render
 {
@@ -22,67 +23,63 @@ namespace PCGTerrain.Render
         }
     }
 
-    //public class TerrainGrid : TerrainModifier
-    //{
-    //    public int _width;
-    //    public int _height;
-    //    public TerrainSample[,] _samples;
-    //    public int _maxElevation;
+    public class IslandModifier : TerrainModifier
+    {
+        private Island _island;
+        private float[,] _heightmap;
+        public Vector3 LowerBound
+        { get { return new Vector3(0, float.MinValue, 0); } }
 
-    //    public TerrainGrid(int width, int maxElevation, int height, bool addOrErode)
-    //    {
-    //        if (width < 1 || height < 1 || maxElevation < 0)
-    //            throw new UnityException("invalid params");
+        public Vector3 UpperBound
+        { get { return new Vector3(_island.width, _island._maxElevation, _island.height); } }
 
-    //        _width = width;
-    //        _height = height;
-    //        _maxElevation = maxElevation;
-    //        _samples = new TerrainSample[_width, _height];
+        public bool AddOrErode { get; set; }
+        public float QueryDensity(Vector3 pos)
+        {    
+            //do bilinear interpolation
 
-    //        AddOrErode = addOrErode;
-    //    }
+            //resize uv to fit heightmap
+            float u = Mathf.Clamp(pos.x, 0, (float)_island.width);
+            u = u / _island.width * (float)(_heightmap.GetLength(0) - 1);
+            u = Mathf.Clamp(u, 0, (float)(_heightmap.GetLength(0) - 1));
 
-    //    public Vector3 LowerBound
-    //    { get { return new Vector3(0, 0, 0); } }
+            float v = Mathf.Clamp(pos.z, 0, (float)_island.height);
+            v = v / _island.height * (float)(_heightmap.GetLength(1) - 1);
+            v = Mathf.Clamp(v, 0, (float)(_heightmap.GetLength(1) - 1));
 
-    //    public Vector3 UpperBound
-    //    { get { return new Vector3(_width - 1, _maxElevation - 1, _height - 1); } }
+            int u0 = Mathf.FloorToInt(u); int u1 = Mathf.CeilToInt(u);
+            int v0 = Mathf.FloorToInt(v); int v1 = Mathf.CeilToInt(v);
 
-    //    public bool AddOrErode { get; set; }
-    //    public float QueryDensity(Vector3 pos)
-    //    {
-    //        //pos.x: width
-    //        //pos.y: elevation
-    //        //pos.z: height
+            float h00 = _heightmap[u0, v0];
+            float h10 = _heightmap[u1, v0];
+            float h01 = _heightmap[u0, v1];
+            float h11 = _heightmap[u1, v1];
+            
+            float h0 = Mathf.Lerp(h00, h01, v - (float)v0);
+            float h1 = Mathf.Lerp(h10, h11, v - (float)v0);
 
-    //        if (width < 0 || width >= _width || height < 0 || height >= _height) //argumented to include boundary cases
-    //            throw new UnityException("index exceeds bound: width: " + width + ", height: " + height);
+            float elevation = Mathf.Lerp(h0, h1, u - (float)u0);
+            
+            //transform to density
+            return elevation - pos.y;
+        }
 
-    //        if (width == _width && width == _height)
-    //            return _samples[width - 1, height - 1]._elevation * 3f -
-    //                _samples[width - 2, height - 1]._elevation -
-    //                _samples[width - 1, height - 2]._elevation - (float)elevation;
+        //only square size by now
+        public IslandModifier(Island island, int resolution, bool addOrErode = true)
+        {
+            _island = island;
+            AddOrErode = addOrErode;
 
-    //        else if (width == _width)
-    //            return _samples[width - 1, height]._elevation * 2f - _samples[width - 2, height]._elevation - (float)elevation;
+            //generate a heightmap based on resolution    
+            _heightmap = new float[resolution, resolution];
 
-    //        else if (height == _height)
-    //            return _samples[width, height - 1]._elevation * 2f - _samples[width, height - 2]._elevation - (float)elevation;
-
-    //        else
-    //            return _samples[width, height]._elevation - (float)elevation;
-    //    }
-
-    //    public float QueryMaterial(Vector3 pos)
-    //    {
-    //        //pos.x: width
-    //        //pos.y: elevation
-    //        //pos.z: height
-    //        if (pos.x < 0 || pos.x >= _width || pos.z < 0 || pos.z >= _height)
-    //            throw new UnityException("index exceeds bound: width: " + pos.x + ", height: " + pos.z);
-
-    //        return _samples[pos.x, pos.z]._matIdx;
-    //    }
-    //}
+            for(int x = 0; x< resolution; x++)
+                for(int y = 0; y <resolution; y++)
+                {
+                    var pos = new BenTools.Mathematics.Vector(_island.width / (float)resolution * x, _island.width / (float)resolution * y);
+                    _heightmap[x, y] = _island.GetElevation(pos);
+                }
+        }
+    }
 }
 
