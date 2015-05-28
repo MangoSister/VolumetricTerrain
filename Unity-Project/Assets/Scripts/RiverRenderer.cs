@@ -1,9 +1,18 @@
-﻿using UnityEngine;
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//RiverRenderer.cs
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using PCGTerrain.Generation;
+using PGRTerrain.Generation;
+using Int2 = PGRTerrain.MathHelper.Int2;
 
-namespace PCGTerrain.Render
+namespace PGRTerrain.Render
 {
     public class RiverRenderer
     {
@@ -11,8 +20,6 @@ namespace PCGTerrain.Render
         
         public Material _waterMat;
         private Island _island;
-
-        private List<GameObject> _branchObjs;
         public class RiverNode
         {
             public Vector3 _pos;
@@ -33,6 +40,17 @@ namespace PCGTerrain.Render
                 _upstream = new List<RiverNode>();
             }
 
+            public RiverNode(River river)
+            {
+                _pos = new Vector3((float)river.data.position[0], 
+                                    river.data.elevation, 
+                                    (float)river.data.position[1]);
+                _flux = river.discharge;
+                _remainFlux = _flux;
+                _downstream = null;
+                _upstream = new List<RiverNode>();
+            }
+
             public void AddUpStream(Vector3 pos, float flux)
             {
                 if (_remainFlux - flux < 0)
@@ -47,8 +65,53 @@ namespace PCGTerrain.Render
 
         }
 
-
         public RiverNode _root;
+
+        private class RiverTuple
+        {
+            public River _dataNode;
+            public RiverNode _renderNode;
+            public RiverTuple(River dataNode, RiverNode renderNode)
+            {
+                _dataNode = dataNode;
+                _renderNode = renderNode;
+            }
+        }
+
+        public RiverRenderer(Transform transform, Material mat, Island island, River river)
+        {
+            _transform = transform;
+            _waterMat = mat;
+            _island = island;
+
+            _root = new RiverNode(river);
+            
+            Queue<RiverTuple> riverQueue = new Queue<RiverTuple>();
+            riverQueue.Enqueue(new RiverTuple(river, _root));
+            while (riverQueue.Count > 0)
+            {
+                var currNode = riverQueue.Dequeue();
+                if(currNode._dataNode.left!=null)
+                {
+                    var pos = new Vector3((float)currNode._dataNode.left.data.position[0], 
+                                    currNode._dataNode.left.data.elevation, 
+                                    (float)currNode._dataNode.left.data.position[1]);
+                    currNode._renderNode.AddUpStream(pos, currNode._dataNode.left.discharge);
+                    riverQueue.Enqueue(new RiverTuple(currNode._dataNode.left,
+                        currNode._renderNode._upstream[currNode._renderNode._upstream.Count - 1]));
+                }
+                if(currNode._dataNode.right!=null)
+                {
+                    var pos = new Vector3((float)currNode._dataNode.right.data.position[0],
+                                    currNode._dataNode.right.data.elevation,
+                                    (float)currNode._dataNode.right.data.position[1]);
+                    currNode._renderNode.AddUpStream(pos, currNode._dataNode.right.discharge);
+                    riverQueue.Enqueue(new RiverTuple(currNode._dataNode.right,
+                       currNode._renderNode._upstream[currNode._renderNode._upstream.Count - 1]));
+                }
+            }
+
+        }
 
         public List<GameObject> GenerateRiverObjects()
         {
@@ -71,6 +134,7 @@ namespace PCGTerrain.Render
             foreach (var mesh in meshes)
             {
                 var obj = new GameObject();
+                obj.name = "RiverBranch";
                 obj.transform.parent = this._transform;
                 obj.AddComponent<MeshFilter>();
                 obj.AddComponent<MeshRenderer>();
@@ -113,7 +177,7 @@ namespace PCGTerrain.Render
 
             int radialVertCount = (Mathf.FloorToInt(upStream._flux / 5f) + 1) * 20;
             int dispTime = Mathf.Min(5, (Mathf.FloorToInt(centralAxis.magnitude / 5f) + 1));
-            float dispScale = 0.1f;
+            float dispScale = 0.5f;
 
 
             Vector3 downProj = Vector3.ProjectOnPlane(Vector3.down, centralAxis);
@@ -160,12 +224,13 @@ namespace PCGTerrain.Render
                 for (int i = 0; i <= disp.GetLength(0); i++)
                 {
                     axisNode += axisInc;
+                    axisNode.y = _island.GetElevation(new BenTools.Mathematics.Vector(axisNode.x, axisNode.z));
                     if (i != disp.GetLength(0))
                     {
                         for (int r = 0; r < radialVertCount; r++)
                         {
                             var vert = vertices[r] + (float)(i + 1) * axisInc;
-                            vert += (vert - axisNode).normalized * disp[i, r];
+                            vert = axisNode + (vert - axisNode) * (1f + disp[i, r]);
                             vertices.Add(vert);
                         }
                     }
@@ -193,14 +258,6 @@ namespace PCGTerrain.Render
             segmentMesh.vertices = vertices.ToArray();
             segmentMesh.triangles = indices.ToArray();
             return segmentMesh;
-        }
-
-        public void Init()
-        {
-            _root = new RiverNode(new Vector3(0f,4f,8f), 2f);
-            _root.AddUpStream(new Vector3(10f, 4f, 8f), 2f);
-            _root._upstream[0].AddUpStream(new Vector3(20f, 4f, 16f), 1f);
-            _root._upstream[0].AddUpStream(new Vector3(20f, 4f, 0f), 1f);
         }
 
     }

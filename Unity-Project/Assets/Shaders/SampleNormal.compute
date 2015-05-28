@@ -1,4 +1,11 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//SampleNormal.compute
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
 #pragma kernel SampleNormal
 
 #define BLOCK_SIZE 8
@@ -18,10 +25,10 @@ void SampleNormal (uint3 threadId : SV_GroupThreadID, int3 groupId :SV_GroupID)
 {
 	int inIdx = groupId.x * INC_SAMPLE_SIZE_3D + threadId.x + threadId.y * INC_SAMPLE_SIZE + threadId.z * INC_SAMPLE_SIZE_2D;
 	float value = _Samples[inIdx];
-	float dx = _Samples[inIdx + 1] - value ;
-	float dy = _Samples[inIdx + INC_SAMPLE_SIZE] - value ;
-	float dz = _Samples[inIdx + INC_SAMPLE_SIZE_2D] - value ;
+	float dx = value - _Samples[inIdx + 1];
+	float dy = value - _Samples[inIdx + INC_SAMPLE_SIZE];
+	float dz = value - _Samples[inIdx + INC_SAMPLE_SIZE_2D];
 
 	int outIdx = groupId.x * SAMPLE_SIZE_3D + threadId.x + threadId.y * SAMPLE_SIZE + threadId.z * SAMPLE_SIZE_2D;
-	_Normals[outIdx] = - normalize(float3(dx,dy,dz)); //need to invert the direction (?)
+	_Normals[outIdx] = normalize(float3(dx,dy,dz));
 }

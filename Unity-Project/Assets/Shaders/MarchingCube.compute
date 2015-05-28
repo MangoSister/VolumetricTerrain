@@ -1,4 +1,11 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//MarchingCube.compute
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
 #pragma kernel MarchingCube
 
 #define BLOCK_SIZE 8
@@ -23,8 +30,8 @@ StructuredBuffer<float> _Samples;
 StructuredBuffer<float3> _Normals;
 
 StructuredBuffer<uint> _CornerFlags;
-StructuredBuffer<int> _TriangleConnectionTable;
-StructuredBuffer<int> _CubeEdgeFlags;
+StructuredBuffer<int> _CornerToVertTable;
+StructuredBuffer<int> _CornerToEdgeTable;
 
 RWBuffer<uint> _TriEndIndex;
 RWStructuredBuffer<Triangle> _Meshes;
@@ -104,7 +111,7 @@ void MarchingCube (uint3 cellIdx : SV_GroupThreadID, uint3 groupId :SV_GroupID)
 								cellIdx.z * BLOCK_SIZE * BLOCK_SIZE
 							];
 
-	int edgeFlag = _CubeEdgeFlags[cornerFlag];
+	int edgeFlag = _CornerToEdgeTable[cornerFlag];
 	if(edgeFlag == 0)
 		return;
 	
@@ -131,21 +138,21 @@ void MarchingCube (uint3 cellIdx : SV_GroupThreadID, uint3 groupId :SV_GroupID)
 
 	for(int i = 0; i < 5; i++)
 	{
-		if(_TriangleConnectionTable[cornerFlag * 15 + i * 3] >= 0)
+		if(_CornerToVertTable[cornerFlag * 15 + i * 3] >= 0)
 		{
 			Triangle tri;
 			tri._block = blockIdx;
 
 			float3 curr;
-			curr = meshVertices[_TriangleConnectionTable[cornerFlag * 15 + i * 3 + 0]];
+			curr = meshVertices[_CornerToVertTable[cornerFlag * 15 + i * 3 + 0]];
 			tri._position0 = curr;
 			tri._normal0 = SampleNormalTrilinear(blockIdx, curr);
 
-			curr = meshVertices[_TriangleConnectionTable[cornerFlag * 15 + i * 3 + 1]];
+			curr = meshVertices[_CornerToVertTable[cornerFlag * 15 + i * 3 + 2]]; //note the winding order!!!!
 			tri._position1 = curr;
 			tri._normal1 = SampleNormalTrilinear(blockIdx, curr);
 
-			curr = meshVertices[_TriangleConnectionTable[cornerFlag * 15 + i * 3 + 2]];
+			curr = meshVertices[_CornerToVertTable[cornerFlag * 15 + i * 3 + 1]];
 			tri._position2 = curr;
 			tri._normal2 = SampleNormalTrilinear(blockIdx, curr);
 

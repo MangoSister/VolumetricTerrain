@@ -1,4 +1,19 @@
-﻿Shader "PCGTerrain/TriplanarMultiMatUvProc" {
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//Triplanar4TexMultiUv.shader
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
+// Triplanar texturing with bump mapping (up to 4 textures with their normal maps)
+// * use world position scaled by tiling factor as uvw coordinate
+// * project the normal vector of each fragment onto x/y/z axises to get weight
+// * blend three samples (using xy, xz, yz components) based on weights
+// * use a 3D splatmap to control blending of different textures
+// * apply multi-UV mixing to reduce tiling artifact
+
+Shader "PCGTerrain/Triplanar4TexMultiUv" {
 	Properties {
 		_ColorTexR ("Color Tex (R)", 2D) = "white" {}
 		_NormalMapR ("Normal Map (R)", 2D) = "bump" {}
@@ -20,25 +35,17 @@
 		_BrightnessComp("UV Scale Brightness Compensate",Vector) = (1.5,1.5,1.5,1.5)
 		_Desat("Saturation after modulation",Vector) = (0.9,0.9,0.9,0.9)
 
-		_NoiseOctave("Noise Octave",Vector) = (4,4,4,4)
-		_NoiseFreq("Noise Frequency",Vector) = (1,1,1,1)
-		_NoiseAmp("Noise Amplitude",Vector) = (0.1,0.1,0.1,0.1)
-		_NoiseLacun("Noise Lacunity",Vector) = (2,2,2,2)
-		_NoisePersist("Noise Persistency",Vector) = (0.5,0.5,0.5,0.5)
-
 		_Specular("Specular Color", Color) = (0,0,0)
 		_Smoothness("Smoothness", Range(0,1)) = 0
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
-		LOD 600
+		LOD 450
 		Cull Off
 		
 		CGPROGRAM
 		#pragma surface surf StandardSpecular fullforwardshadows
 		#pragma target 3.0
-		
-		#include "SimplexNoise.cginc"
 
 		uniform sampler2D _ColorTexR;
 		uniform sampler2D _NormalMapR;
@@ -53,15 +60,9 @@
 		uniform half4 _Offset;
 		uniform half4 _Scale;
 
-		uniform fixed4 _UvOctave;
+		uniform half4 _UvOctave;
 		uniform half4 _BrightnessComp;
 		uniform fixed4 _Desat;
-
-		uniform half4 _NoiseOctave;
-		uniform half4 _NoiseFreq;
-		uniform fixed4 _NoiseAmp;
-		uniform half4 _NoiseLacun;
-		uniform fixed4 _NoisePersist;
 
 		uniform fixed3 _Specular;
 		uniform fixed _Smoothness;
@@ -83,45 +84,45 @@
 
 		void surf (Input IN, inout SurfaceOutputStandardSpecular o) 
 		{
+			//the weight for blending different textures
 			fixed4 splat_blend_weight = tex3D(_MatControl, (IN.worldPos - _Offset.xyz) * _Scale.xyz);
 			splat_blend_weight /= (splat_blend_weight.r + splat_blend_weight.g + splat_blend_weight.b + splat_blend_weight.a);
-
-			fixed3 triplanar_blend_weight = abs(WorldNormalVector(IN,fixed3(0,0,1))); //weird here, must use a flat float3(0,0,1)	
+			
+			//the weight for blending three samples from the same texture (triplanar)
+			//subtle notification: must use a flat float3(0,0,1) here
+			//get world normal vector as blending weight
+			fixed3 triplanar_blend_weight = abs(WorldNormalVector(IN,fixed3(0,0,1)));
 			triplanar_blend_weight /= (triplanar_blend_weight.x + triplanar_blend_weight.y + triplanar_blend_weight.z);			
 			
-			_UvOctave = clamp(_UvOctave, fixed4(0.125,0.125,0.125,0.125), fixed4(1,1,1,1));
-			fixed4 noise_module;
-			_NoiseOctave = floor(clamp(_NoiseOctave, half4(1,1,1,1), half4(5,5,5,5)));
+			//clamp the uv scale
+			_UvOctave = clamp(_UvOctave, half4(0.125,0.125,0.125,0.125), half4(1,1,1,1));
 
-			noise_module.r = simplex_fBm(IN.worldPos,_NoiseOctave.x,_NoiseFreq.x, 1,_NoiseLacun.x,_NoisePersist.x);
-			noise_module.g = simplex_fBm(IN.worldPos + half3(23.0,23.0,23.0),_NoiseOctave.y,_NoiseFreq.y, 1,_NoiseLacun.y,_NoisePersist.y);
-			noise_module.b = simplex_fBm(IN.worldPos - half3(41.0,41.0,41.0),_NoiseOctave.z,_NoiseFreq.z, 1,_NoiseLacun.z,_NoisePersist.z);
-			noise_module.a = simplex_fBm(IN.worldPos + half3(79.0,79.0,79.0),_NoiseOctave.w,_NoiseFreq.w, 1,_NoiseLacun.w,_NoisePersist.w);
-			noise_module = _NoiseAmp * noise_module + 1;
+			o.Albedo = fixed4(0,0,0,0);
 
-			o.Albedo = fixed3(0,0,0);
+			//multiply two samples sampled by different uv scales -> desaturate the result color -> compensate the brightness  
 			//Color XY plane
 			o.Albedo += triplanar_blend_weight.z * (
-								splat_blend_weight.r * desaturate( tex2D(_ColorTexR, IN.worldPos.xy) * tex2D(_ColorTexR, IN.worldPos.xy * -_UvOctave.r), _Desat.r ) * _BrightnessComp.r * noise_module.r + 
-								splat_blend_weight.g * desaturate( tex2D(_ColorTexG, IN.worldPos.xy) * tex2D(_ColorTexG, IN.worldPos.xy * -_UvOctave.g), _Desat.g ) * _BrightnessComp.g * noise_module.g +
-								splat_blend_weight.b * desaturate( tex2D(_ColorTexB, IN.worldPos.xy) * tex2D(_ColorTexB, IN.worldPos.xy * -_UvOctave.b), _Desat.b ) * _BrightnessComp.b * noise_module.b +
-								splat_blend_weight.a * desaturate( tex2D(_ColorTexA, IN.worldPos.xy) * tex2D(_ColorTexA, IN.worldPos.xy * -_UvOctave.a), _Desat.a ) * _BrightnessComp.a * noise_module.a 
+								splat_blend_weight.r * desaturate( tex2D(_ColorTexR, IN.worldPos.xy) * tex2D(_ColorTexR, IN.worldPos.xy * -_UvOctave.r), _Desat.r ) * _BrightnessComp.r + 
+								splat_blend_weight.g * desaturate( tex2D(_ColorTexG, IN.worldPos.xy) * tex2D(_ColorTexG, IN.worldPos.xy * -_UvOctave.g), _Desat.g ) * _BrightnessComp.g +
+								splat_blend_weight.b * desaturate( tex2D(_ColorTexB, IN.worldPos.xy) * tex2D(_ColorTexB, IN.worldPos.xy * -_UvOctave.b), _Desat.b ) * _BrightnessComp.b +
+								splat_blend_weight.a * desaturate( tex2D(_ColorTexA, IN.worldPos.xy) * tex2D(_ColorTexA, IN.worldPos.xy * -_UvOctave.a), _Desat.a ) * _BrightnessComp.a 
 								);
-
+								
 			//Color YZ plane
 			o.Albedo += triplanar_blend_weight.x * (
-								splat_blend_weight.r * desaturate( tex2D(_ColorTexR, IN.worldPos.yz) * tex2D(_ColorTexR, IN.worldPos.yz * -_UvOctave.r), _Desat.r ) * _BrightnessComp.r * noise_module.r +
-								splat_blend_weight.g * desaturate( tex2D(_ColorTexG, IN.worldPos.yz) * tex2D(_ColorTexB, IN.worldPos.yz * -_UvOctave.g), _Desat.g ) * _BrightnessComp.g * noise_module.g +
-								splat_blend_weight.b * desaturate( tex2D(_ColorTexB, IN.worldPos.yz) * tex2D(_ColorTexG, IN.worldPos.yz * -_UvOctave.b), _Desat.b ) * _BrightnessComp.b * noise_module.b +
-								splat_blend_weight.a * desaturate( tex2D(_ColorTexA, IN.worldPos.yz) * tex2D(_ColorTexA, IN.worldPos.yz * -_UvOctave.a), _Desat.a ) * _BrightnessComp.a * noise_module.a 
+								splat_blend_weight.r * desaturate( tex2D(_ColorTexR, IN.worldPos.yz) * tex2D(_ColorTexR, IN.worldPos.yz * -_UvOctave.r), _Desat.r ) * _BrightnessComp.r +
+								splat_blend_weight.g * desaturate( tex2D(_ColorTexG, IN.worldPos.yz) * tex2D(_ColorTexB, IN.worldPos.yz * -_UvOctave.g), _Desat.g ) * _BrightnessComp.g +
+								splat_blend_weight.b * desaturate( tex2D(_ColorTexB, IN.worldPos.yz) * tex2D(_ColorTexG, IN.worldPos.yz * -_UvOctave.b), _Desat.b ) * _BrightnessComp.b +
+								splat_blend_weight.a * desaturate( tex2D(_ColorTexA, IN.worldPos.yz) * tex2D(_ColorTexA, IN.worldPos.yz * -_UvOctave.a), _Desat.a ) * _BrightnessComp.a 
 								);
 			//Color XZ plane
 			o.Albedo += triplanar_blend_weight.y * (
-								splat_blend_weight.r * desaturate( tex2D(_ColorTexR, IN.worldPos.xz) * tex2D(_ColorTexR, IN.worldPos.xz * -_UvOctave.r), _Desat.r ) * _BrightnessComp.r * noise_module.r +
-								splat_blend_weight.g * desaturate( tex2D(_ColorTexG, IN.worldPos.xz) * tex2D(_ColorTexG, IN.worldPos.xz * -_UvOctave.g), _Desat.g ) * _BrightnessComp.g * noise_module.g +
-								splat_blend_weight.b * desaturate( tex2D(_ColorTexB, IN.worldPos.xz) * tex2D(_ColorTexB, IN.worldPos.xz * -_UvOctave.b), _Desat.b ) * _BrightnessComp.b * noise_module.b +
-								splat_blend_weight.a * desaturate( tex2D(_ColorTexA, IN.worldPos.xz) * tex2D(_ColorTexA, IN.worldPos.xz * -_UvOctave.a), _Desat.a ) * _BrightnessComp.a * noise_module.a 
+								splat_blend_weight.r * desaturate( tex2D(_ColorTexR, IN.worldPos.xz) * tex2D(_ColorTexR, IN.worldPos.xz * -_UvOctave.r), _Desat.r ) * _BrightnessComp.r +
+								splat_blend_weight.g * desaturate( tex2D(_ColorTexG, IN.worldPos.xz) * tex2D(_ColorTexG, IN.worldPos.xz * -_UvOctave.g), _Desat.g ) * _BrightnessComp.g +
+								splat_blend_weight.b * desaturate( tex2D(_ColorTexB, IN.worldPos.xz) * tex2D(_ColorTexB, IN.worldPos.xz * -_UvOctave.b), _Desat.b ) * _BrightnessComp.b +
+								splat_blend_weight.a * desaturate( tex2D(_ColorTexA, IN.worldPos.xz) * tex2D(_ColorTexA, IN.worldPos.xz * -_UvOctave.a), _Desat.a ) * _BrightnessComp.a
 								);
+
 
 			fixed4 nrm = fixed4(0,0,0,0);
 			//Normal XY plane

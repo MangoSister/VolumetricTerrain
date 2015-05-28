@@ -1,37 +1,58 @@
-﻿using System;
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//Island.cs
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using BenTools.Mathematics;
+using UnityEngine;
 
-namespace PCGTerrain.Generation
+using SRandom = System.Random;
+
+namespace PGRTerrain.Generation
 {
     public class Island
     {
-        //-------------Data---------------------------
-        public int relaxationTime;//relaxation times
+        //-------------Data---------------------------        
         public int width;//screen width 
         public int height;//screen hight
-        public int num_of_rivers;
-        public int num_of_centers;//number of centers
-        public int num1;//corner num of main river
-        public int num2;// corner num of sub river
-        public int countm = 0;// for remenbering the num of corner of a main river branch
-        public int counts = 0;//for remenbering the num of corner of a sub river branch
         public float _maxElevation;
-        public NearestNeighbor NN;//class for searching nearest center
+        public int relaxationTime;//relaxation times
+        public int num_of_centers;//number of centers
+        
+        public int num_of_rivers;       
+        public int _mainStreamLength;//corner num of main river
+        public int _subStreamLength;// corner num of sub river
+        public float _riverSplitFreq;
+        
+        private int countm = 0;// for remenbering the num of corner of a main river branch
+        private int counts = 0;//for remenbering the num of corner of a sub river branch
+        
+        private NearestNeighbor NN;//class for searching nearest center
         public HashSet<IslandTile> ocean = new HashSet<IslandTile>();//store ocean tiles
         public HashSet<IslandTile> land = new HashSet<IslandTile>();//store land tiles
-        public HashSet<IslandTileCorner> shore = new HashSet<IslandTileCorner>();//store corners in shore
+        private HashSet<IslandTileCorner> shore = new HashSet<IslandTileCorner>();//store corners in shore
         //public HashSet<IslandTileCorner> totalcorners = new HashSet<IslandTileCorner>();//total corners
-        public Dictionary<Vector, IslandTile> Tiles = new Dictionary<Vector, IslandTile>();//store all tiles
-        public List<Vector> centers = new List<Vector>();//stores all tiles' positions
-        public List<Vector> landcenters = new List<Vector>();//stores land tiles' postions
-        public List<River> allrivers = new List<River>();//all rivers
+        private Dictionary<Vector, IslandTile> Tiles = new Dictionary<Vector, IslandTile>();//store all tiles
+        private List<Vector> centers = new List<Vector>();//stores all tiles' positions
+        private List<Vector> landcenters = new List<Vector>();//stores land tiles' postions
+        
         public List<River> rivers;//each river is a binary tree through this you can travesing all river corners by tree's order        
 
-        private Random rnd; //random generator
+        private SRandom _rndGen; //random generator
         //class constractor
-        public Island(int width, int height, int relaxTime, int centerNum, int riverNum, float maxElevation, int seed = 0)
+        public Island(int width, int height, 
+                    int relaxTime, int centerNum, 
+                    int riverNum, float maxElevation, 
+                    float mainStreamLengthRatio, //typical: 0.02
+                    float subStreamLengthRatio, //typical: 0.5
+                    float riverSplitFreq, //typical: 0.2
+                    int seed = 0)
         {
             this.width = width;
             this.height = height;
@@ -40,10 +61,19 @@ namespace PCGTerrain.Generation
             this.num_of_rivers = riverNum;
             this._maxElevation = maxElevation;
 
-            rnd = new Random(seed);
+            if (mainStreamLengthRatio < 0f || mainStreamLengthRatio > 0.2f)
+                throw new ArgumentOutOfRangeException("ratio must be between 0 and 0.2");
+            _mainStreamLength = (int) Math.Floor(Math.Max(width, height) * mainStreamLengthRatio);
 
-            num1 = Math.Max(width / 50, height / 50);
-            num2 = num1 / 2;
+            if (subStreamLengthRatio < 0f || subStreamLengthRatio > 1f)
+                throw new ArgumentOutOfRangeException("ratio must be between 0 and 1");
+            _subStreamLength = (int) Math.Floor(_mainStreamLength * subStreamLengthRatio);
+           
+            if (_riverSplitFreq < 0f || _riverSplitFreq > 1f)
+                throw new ArgumentOutOfRangeException("frequency must be between 0 and 1");
+            _riverSplitFreq = riverSplitFreq;
+
+            _rndGen = new SRandom(seed);
             centers = random_centers(width, height, num_of_centers);
             VoronoiGraph vg = Fortune.ComputeVoronoiGraph(centers);//run voronoi diagram algorithm
             for (int i = 0; i < centers.Count; i++)//Initialize and store IslandTiles
@@ -146,16 +176,16 @@ namespace PCGTerrain.Generation
                     float sum_elevation = 0;
                     foreach (var c in t.corners)
                     {
+                        float minDistToShore = float.MaxValue;
                         foreach (var s in shore)
                         {
-                            float elevation = (float)Math.Sqrt((c.position - s.position).data[0] * (c.position - s.position).data[0] +
+                            float distToShore = (float)Math.Sqrt((c.position - s.position).data[0] * (c.position - s.position).data[0] +
                                                                 (c.position - s.position).data[1] * (c.position - s.position).data[1]);
-                            if (elevation > _maxElevation)
-                                elevation = _maxElevation;
-
-                            if (c.elevation > elevation)
-                                c.elevation = elevation;
+                            if (minDistToShore > distToShore)
+                                minDistToShore = distToShore;
                         }
+                        c.elevation = minDistToShore * minDistToShore / _maxElevation;
+                        c.elevation = Math.Min(c.elevation, _maxElevation);
                         sum_elevation += c.elevation;
                         // totalcorners[c.position] = c;
                     }
@@ -175,7 +205,7 @@ namespace PCGTerrain.Generation
                 landcenters.Add(item.center);
 
             }
-            rivers = generationofRivers();//generate rivers
+            rivers = GenerateRivers();//generate rivers
             foreach (var ri in rivers)
             {
                 River.findDischarge(ri);//get discharge for every corner
@@ -198,7 +228,7 @@ namespace PCGTerrain.Generation
                 }
             }
 
-            storebiome();//set biome type for each tile
+            StoreBiome();//set biome type for each tile
 
             //from now on, all data of a tile are generated. 
 
@@ -213,7 +243,7 @@ namespace PCGTerrain.Generation
             List<Vector> poi = new List<Vector>();
             while (points.Count < num_of_centers)
             {
-                points.Add(rnd.Next(0, width * hight - 1));
+                points.Add(_rndGen.Next(0, width * hight - 1));
             }
 
             foreach (int item in points)
@@ -247,58 +277,36 @@ namespace PCGTerrain.Generation
             }
             return improvepoint_list;
         }
-        //----------------------------3.generate rivers-----------------------------
-        //this function will return a list of rivers,and the num of river is decided by you in your main function
-        /* public List<River> generationofRivers(int num)
-         {
-             List<River> totalriver = new List<River>();
-             Random rnd = new Random();
-             HashSet<IslandTileCorner> startpoints = new HashSet<IslandTileCorner>();
-             while(startpoints.Count<num)
-             {
-                 int index=rnd.Next(0, landcenters.Count);
-            
-                 foreach (var c in Tiles[landcenters[index]].corners)
-                 {
-                   if (c.elevation != 0)
-                   {
-                     startpoints.Add(c);
-                    //System.Console.WriteLine("haha");
-                     break;
-                   }
-                 }    
-             }
-             foreach (var item in startpoints)
-             {
-                 River r = new River();
-                 r.generateriver(item);
-                 totalriver.Add(r);
-             }
-             return totalriver;
-            
-            
-         }*/
 
-        public List<River> generationofRivers()
+        public List<River> GenerateRivers()
         {
+            List<River> allrivers = new List<River>(); //all rivers
+
             //generate startpoints in shore corners
             List<IslandTileCorner> lshore = new List<IslandTileCorner>();
 
             foreach (var s in shore)
                 lshore.Add(s);
             HashSet<IslandTileCorner> startpoints = new HashSet<IslandTileCorner>();
-            Random r = new Random();
+        
             while (startpoints.Count < num_of_rivers)
             {
-                int index = r.Next(0, lshore.Count - 1);
-                startpoints.Add(lshore[index]);
+                int index = _rndGen.Next(0, lshore.Count - 1);
+                bool valid = false;
+                foreach(var neighbor in lshore[index].adjacent)
+                {
+                    if (neighbor.elevation > 0f)
+                        valid = true;
+                }
+                if (valid)
+                    startpoints.Add(lshore[index]);
             }
             foreach (var rs in startpoints)
             {
 
                 River root = new River(rs);
                 //generation_Mainriver(highest);
-                generation_Mainriver(root);
+                GenerateMainRiver(root);
                 allrivers.Add(root);
                 countm = 0;//main river's numofcorners
                 counts = 0;//each sub river's numofcorners
@@ -308,43 +316,58 @@ namespace PCGTerrain.Generation
 
         }
 
-        public void generation_Mainriver(River rc)
+        private void GenerateMainRiver(River rc)
         {
-            IslandTileCorner highest = rc.data;
-            IslandTileCorner secondhigh = rc.data;
+            IslandTileCorner maxima = rc.data;
+            bool existMaxima = false;
             foreach (var c in rc.data.adjacent)
             {
-                if (c.elevation > highest.elevation)
-                    highest = c;
+                if (c.elevation > maxima.elevation)
+                {
+                    maxima = c;
+                    existMaxima = true;
+                }
             }
-            foreach (var c in rc.data.adjacent)
-            {
-                if ((c.elevation > secondhigh.elevation) && (c != highest))
-                    secondhigh = c;
-            }
+
+            if (!existMaxima)
+                return;
 
             if (rc.right == null)
             {
-                rc.right = new River(highest);
+                rc.right = new River(maxima);
                 rc.right.father = rc;
             }
             countm++;
-            if (countm < num1)
-                generation_Mainriver(rc.right);
-            double whetherleft = rnd.NextDouble();
+            if (countm < _mainStreamLength)
+                GenerateMainRiver(rc.right);
 
-            if (whetherleft < 0.2)
+            double doSplit = _rndGen.NextDouble();
+            if (doSplit > _riverSplitFreq)
+                return;
+
+            IslandTileCorner secondMaxima = rc.data;
+            bool existSecondMaxima = false;
+            foreach (var c in rc.data.adjacent)
             {
-                if (rc.left == null)
+                if ((c.elevation > secondMaxima.elevation) && (c != maxima))
                 {
-                    rc.left = new River(secondhigh);
-                    rc.left.father = rc;
+                    secondMaxima = c;
+                    existSecondMaxima = true;
                 }
-                generation_Subriver(rc.left);
-                counts = 0;
             }
+            if (!existSecondMaxima)
+                return;
+
+            if (rc.left == null)
+            {
+                rc.left = new River(secondMaxima);
+                rc.left.father = rc;
+            } 
+            GenerateSubRiver(rc.left);
+            counts = 0;
+            
         }
-        public void generation_Subriver(River sr)
+        public void GenerateSubRiver(River sr)
         {
             //to make it easy I don't concider the subriver of a subriver
             IslandTileCorner highest = sr.data;
@@ -359,42 +382,30 @@ namespace PCGTerrain.Generation
                 sr.right.father = sr;
             }
             counts++;
-            if (counts < num2)
-                generation_Subriver(sr.right);
+            if (counts < _subStreamLength)
+                GenerateSubRiver(sr.right);
         }
         // get biome type of each tiles. this varible is defined in IslandTile.cs
         //to use this function, you'd better first calculate the maxelevation of pixels
-        public void storebiome()
+        public void StoreBiome()
         {
             foreach (var item in Tiles.Values)
             {
-                if (item.iswater)
+                item.biome[BiomeType.Snow] = Mathf.InverseLerp(0.7f * _maxElevation, 1.0f * _maxElevation, item.elevation);
+                item.biome[BiomeType.BareRock] = MathHelper.TriangularInvLerp(0.3f * _maxElevation, 1.0f * _maxElevation, item.elevation);
+                item.biome[BiomeType.GrassLand] = MathHelper.TriangularInvLerp(0.05f * _maxElevation, 0.4f * _maxElevation, item.elevation);
+                item.biome[BiomeType.Beach] = Mathf.InverseLerp(0.1f * _maxElevation, 0.0f, item.elevation);
+                if (item.hasriver && item.elevation < 0.4f * _maxElevation)
                 {
-                    item.biome = 0;//ocean
+                    item.biome[BiomeType.RainForest] = 1f;
                 }
-                if (item.isshore)
-                {
-                    item.biome = 1;//beach
-                }
-                if (item.elevation >= (0.9 * _maxElevation))
-                {
-                    //tiles above 0.9maxelevation supposed to be snow
-                    item.biome = 5;
-                }
-                if ((item.elevation < 0.9 * _maxElevation) && (item.elevation >= 0.6 * _maxElevation))
-                {
-                    item.biome = 4;//rock
-                }
-                if (item.elevation < 0.6)
-                {
-                    item.biome = 3;//grassland
-                }
-                if (item.hasriver)
-                {
-                    item.biome = 2;//forest
-                }
-
-            }
+                float sum = 0;
+                foreach (var component in item.biome.Values)
+                    sum += component;
+                var keyList = new List<BiomeType>(item.biome.Keys);
+                foreach (var key in keyList)
+                    item.biome[key] /= sum;
+           }      
         }
         public float GetElevation(Vector p)
         {
@@ -417,7 +428,12 @@ namespace PCGTerrain.Generation
             return pelevation;
         }
 
-
+        public Dictionary<BiomeType, float> GetBiome(Vector p)
+        {
+            int tag = NN.FindNearestTile(p);
+            Vector neighbercenter = centers[tag];
+            return Tiles[neighbercenter].biome;
+        }
 
 
     }

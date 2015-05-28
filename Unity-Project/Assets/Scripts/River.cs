@@ -1,7 +1,15 @@
-﻿using System;
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//River.cs
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
+using System;
 using System.Collections.Generic;
 
-namespace PCGTerrain.Generation
+namespace PGRTerrain.Generation
 {
     public class River
     {

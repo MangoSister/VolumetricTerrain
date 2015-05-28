@@ -1,4 +1,18 @@
-﻿Shader "PCGTerrain/TriplanarMultiMat" {
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//Triplanar4Tex.shader
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
+// Triplanar texturing with bump mapping (up to 4 textures with their normal maps)
+// * use world position scaled by tiling factor as uvw coordinate
+// * project the normal vector of each fragment onto x/y/z axises to get weight
+// * blend three samples (using xy, xz, yz components) based on weights
+// * use a 3D splatmap to control blending of different textures
+
+Shader "PCGTerrain/Triplanar4Tex" {
 	Properties {
 		_ColorTexR ("Color Tex (R)", 2D) = "white" {}
 		_NormalMapR ("Normal Map (R)", 2D) = "bump" {}
@@ -53,10 +67,14 @@
 
 		void surf (Input IN, inout SurfaceOutputStandardSpecular o) 
 		{
+			//the weight for blending different textures
 			fixed4 splat_blend_weight = tex3D(_MatControl, (IN.worldPos - _Offset.xyz) * _Scale.xyz);
 			splat_blend_weight /= (splat_blend_weight.r + splat_blend_weight.g + splat_blend_weight.b + splat_blend_weight.a);
-
-			fixed3 triplanar_blend_weight = abs(WorldNormalVector(IN,fixed3(0,0,1))); //weird here, must use a flat float3(0,0,1)	
+			
+			//the weight for blending three samples from the same texture (triplanar)
+			//subtle notification: must use a flat float3(0,0,1) here
+			//get world normal vector as blending weight
+			fixed3 triplanar_blend_weight = abs(WorldNormalVector(IN,fixed3(0,0,1)));
 			triplanar_blend_weight /= (triplanar_blend_weight.x + triplanar_blend_weight.y + triplanar_blend_weight.z);			
 			
 			o.Albedo = fixed4(0,0,0,0);
@@ -82,6 +100,7 @@
 								tex2D(_ColorTexA, IN.worldPos.xz) * splat_blend_weight.a 
 								);
 			
+			//apply normal maps
 			fixed nrm = fixed4(0,0,0,0);
 			//Normal XY plane
 			nrm += triplanar_blend_weight.z * (

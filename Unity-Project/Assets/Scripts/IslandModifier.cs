@@ -1,9 +1,17 @@
-﻿using UnityEngine;
+﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
+//DH2323 Course Project in KTH
+//IslandModifier.cs
+//Yang Zhou: yanzho@kth.se
+//Yanbo Huang: yanboh@kth.se
+//Huiting Wang: huitingw@kth.se
+//2015.5
+
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using PCGTerrain.Generation;
+using PGRTerrain.Generation;
 
-namespace PCGTerrain.Render
+namespace PGRTerrain.Render
 {
     /// <summary>
     /// Data structure for terrain "heightmap" (with other infos)
