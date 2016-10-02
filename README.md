@@ -1,2 +1,2 @@
-# DH2323-Project
+# Volumetric Terrain
 Procedural generation and rendering of terrain
