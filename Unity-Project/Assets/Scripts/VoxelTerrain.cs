@@ -1,12 +1,4 @@
-﻿//PGRTerrain: Procedural Generation and Rendering of Terrain
-//DH2323 Course Project in KTH
-//VoxelTerrain.cs
-//Yang Zhou: yanzho@kth.se
-//Yanbo Huang: yanboh@kth.se
-//Huiting Wang: huitingw@kth.se
-//2015.5
-
-using UnityEngine;
+﻿using UnityEngine;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
